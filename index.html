@@ -195,6 +195,8 @@ details[open] summary::before{content:"▾ "}
 .week-sum b{color:var(--fg);font-weight:600;margin-right:4px}
 .nutri{display:flex;flex-wrap:wrap;gap:4px}
 .nt{font-size:.72rem;border-radius:4px;padding:1px 7px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nt.hot{background:var(--pb-soft);color:var(--pb)}
+.nt.cold{background:var(--pa-soft);color:var(--pa)}
 .nt.warn{background:var(--danger-soft);color:var(--danger)}
 .week-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tnum{font-variant-numeric:tabular-nums}
@@ -222,6 +224,21 @@ details[open] summary::before{content:"▾ "}
 .pick-rec .price{grid-row:1 / span 2;grid-column:2}
 .pick-rec-m{font-size:.78rem;color:var(--muted)}
 .pick-list .btn{align-self:flex-start}
+.meal{position:relative;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.edit-bar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:8;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--fg);color:var(--bg);border-radius:var(--r);padding:10px 12px 10px 16px;margin-bottom:14px;font-size:.88rem;box-shadow:0 6px 20px rgb(0 0 0 / .15)}
+.edit-bar .btn{background:var(--bg);color:var(--fg)}
+.edit-mode .meal{touch-action:none;cursor:grab}
+.edit-mode .meal[data-filled]{animation:jiggle .26s ease-in-out infinite alternate}
+.edit-mode .mday:nth-child(even) .meal[data-filled]{animation-delay:-.13s}
+.edit-mode .meal.empty-slot{border-color:var(--accent);color:var(--accent)}
+@keyframes jiggle{from{transform:rotate(-1.1deg)}to{transform:rotate(1.1deg)}}
+.meal-x{position:absolute;top:-8px;left:-8px;width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--bg);display:grid;place-items:center;
+  font-size:15px;line-height:1;box-shadow:0 2px 6px rgb(0 0 0 / .25);cursor:pointer;z-index:2}
+.meal.dragging{opacity:.3;animation:none!important}
+.meal.drop-target{border-color:var(--accent)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--accent-soft);animation:none!important;transform:scale(1.03)}
+.meal-ghost{position:fixed;z-index:60;pointer-events:none;margin:0;box-shadow:0 14px 32px rgb(0 0 0 / .28);transform:rotate(2deg) scale(1.04);animation:none!important;background:var(--surface)}
+@media (prefers-reduced-motion:reduce){.edit-mode .meal[data-filled]{animation:none}}
 .editor textarea{min-height:120px;resize:vertical;line-height:1.45}
 .editor .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .editor .acts{display:flex;flex-wrap:wrap;gap:8px}
@@ -921,9 +938,10 @@ function weekDays(offsetWeeks){ const m = monday(offsetWeeks); return Array.from
 function mealCell(date, slot, label){
   const m = mealOf(date, slot); const sel = state.editMeal && state.editMeal.date === date && state.editMeal.slot === slot;
   const past = date < today();
-  if (!m) return `<button class="meal empty-slot ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}"><span class="slot">${label}</span><span>+ Ajouter</span></button>`;
+  const key = mealKey(date, slot);
+  if (!m) return `<button class="meal empty-slot ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}"><span class="slot">${label}</span><span>${state.mealEdit ? 'Libre' : '+ Ajouter'}</span></button>`;
   const hasRec = m.recipeId || (m.ingredients||'').trim() || (m.steps||'').trim() || (m.link||'').trim();
-  return `<button class="meal ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}"><span class="slot">${label}</span><span class="meal-t">${esc(m.title)}</span>${m.cook?pill(m.cook):''}${hasRec?'<span class="rec-tag">Recette</span>':''}</button>`;
+  return `<button class="meal ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}" data-filled="1">${state.mealEdit ? `<span class="meal-x" role="button" data-act="meal-x" data-id="${key}" aria-label="Supprimer ${esc(m.title)}">×</span>` : ''}<span class="slot">${label}</span><span class="meal-t">${esc(m.title)}</span>${m.cook?pill(m.cook):''}${hasRec?'<span class="rec-tag">Recette</span>':''}</button>`;
 }
 function mealEditor(){
   const { date, slot } = state.editMeal; const m = mealOf(date, slot) || {}; const k = mealKey(date, slot);
@@ -994,9 +1012,10 @@ function vMenus(){
       ${editHere ? mealEditor() : ''}`;
   }).join('');
   return `
-  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1><p class="sub">Cliquez sur un repas et choisissez une recette de votre banque : ses ingrédients s’ajoutent tout seuls à la liste de courses. « Générer la semaine » remplit les dîners (le même plat mardi et mercredi, puis jeudi et vendredi, chacun avec une protéine et une base différentes) et les deux repas du week-end, avec des légumes dans chaque plat ; les midis en semaine restent à votre choix.</p></div></div>
+  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1><p class="sub">Cliquez sur un repas et choisissez une recette de votre banque : ses ingrédients s’ajoutent tout seuls à la liste de courses. « Générer la semaine » remplit les dîners (le même plat mardi et mercredi, puis jeudi et vendredi, chacun avec une protéine et une base différentes) et les deux repas du week-end, avec des légumes dans chaque plat ; les midis en semaine restent à votre choix. Restez appuyé sur un plat pour le déplacer ou le supprimer.</p></div></div>
   ${menuTabs('menus')}
-  ${weeks}`;
+  ${state.mealEdit ? `<div class="edit-bar" role="status"><span>Faites glisser un plat vers un autre jour, ou touchez <b>×</b> pour le supprimer.</span><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
+  <div class="weeks ${state.mealEdit ? 'edit-mode' : ''}">${weeks}</div>`;
 }
 
 /* ---------- recipe & ingredient banks ---------- */
@@ -1012,7 +1031,7 @@ function searchRecipes(q, max = 8){
   const words = norm(q).split(/\s+/).filter(Boolean);
   const list = state.recipes.filter(r => words.length || !/dessert|petit-dejeuner/.test(norm(r.tags)));
   const scored = list.map(r => {
-    const title = norm(r.title), rest = norm((r.tags || '') + ' ' + (r.items || []).map(ingName).join(' '));
+    const title = norm(r.title), rest = norm((r.tags || '') + ' ' + tempOf(r) + ' ' + (r.items || []).map(ingName).join(' '));
     let sc = 0;
     for (const w of words) { if (title.startsWith(w)) sc += 4; else if ((' ' + title).includes(' ' + w)) sc += 3; else if (title.includes(w)) sc += 2; else if (rest.includes(w)) sc += 1; else return null; }
     return [r, sc];
@@ -1083,10 +1102,10 @@ Object.entries({
   oeufs:'oeuf',
   legumineuse:'pois-chiches haricots-rouges haricots-blancs lentilles-corail lentilles-vertes pois-casses tofu',
   laitier:'lait beurre creme parmesan mozzarella gruyere yaourt reblochon cheddar feta chevre',
-  legume:'tomate carotte courgette poivron salade champignon epinard poireau avocat concombre aubergine endive haricots-verts potiron navet brocoli chou-fleur chou-vert petits-pois tomates-concassees',
+  legume:'panais tomate carotte courgette poivron salade champignon epinard poireau avocat concombre aubergine endive haricots-verts potiron navet brocoli chou-fleur chou-vert petits-pois tomates-concassees',
   aromate:'oignon oignon-rouge ail echalote basilic persil coriandre menthe thym gingembre bouquet-garni citron',
   fruit:'pomme banane fruits-rouges',
-  pates:'pates pates-completes lasagnes nouilles gnocchis raviolis',
+  pates:'pates pates-completes lasagnes nouilles gnocchis raviolis vermicelles',
   riz:'riz riz-complet riz-arborio',
   pdt:'pomme-de-terre patate-douce',
   cereale:'semoule quinoa flocons-avoine',
@@ -1123,7 +1142,20 @@ function profileOf(r){
   return { base, fam, vegProt, kinds:[...fam, ...vegProt], veg, hasProtein:fam.length + vegProt.length > 0,
            fish:fam.some(f => f === 'poisson' || f === 'fruits de mer') };
 }
-window.foyerDebug = { profileOf:r => profileOf(r) }; // lets tests inspect how a dish is classified
+window.foyerDebug = { profileOf:r => profileOf(r), tempOf:r => tempOf(r) }; // lets tests inspect how a dish is classified
+// hot or cold dish: the recipe's own choice, else read from its name and tags
+// cold: the name starts with a cold dish (« Salade… », « Wraps… ») or the recipe is tagged « salade »;
+// a side salad (« Quiche lorraine et salade ») does not make a dish cold
+const COLD_START = /^(salades?|taboule|gaspacho|poke|wraps?|smoothie|overnight|houmous|bol de yaourt|tartines avocat|carpaccio|tartare|mousse au chocolat|buddha bowl)\b/;
+function tempOf(r){
+  if (r && (r.temp === 'chaud' || r.temp === 'froid')) return r.temp;
+  const title = norm((r && r.title) || ''), tags = norm((r && r.tags) || '');
+  if (/tiede|chaud/.test(title)) return 'chaud';
+  return COLD_START.test(title) || /(^|,)\s*salade\s*(,|$)/.test(tags) ? 'froid' : 'chaud';
+}
+// season of a date: winter favours hot dishes, summer cold ones, spring and autumn mix both
+function seasonOf(d){ const m = parse(d).getMonth() + 1; return m === 12 || m <= 2 ? 'hiver' : m <= 5 ? 'printemps' : m <= 8 ? 'été' : 'automne'; }
+const SEASON_PREF = { hiver:'chaud', été:'froid' };
 const proteinLabel = pr => pr.kinds.length ? pr.kinds.join(' + ') : 'sans protéine';
 // Meat and fish families, read from a recipe's ingredients (bank ids first, then the ingredient's name)
 const PROTEIN_IDS = { 'boeuf-hache':['bœuf'], 'boeuf-braiser':['bœuf'], 'steak-hache':['bœuf'], veau:['veau'],
@@ -1201,8 +1233,9 @@ function genWeek(off, replaceAll){
     (r, wd) => !wd || (!profileOf(r).kinds.some(x => taken.has(x)) && !weekdayBases.has(profileOf(r).base || '-')),
     (r) => { const b = profileOf(r).base; return !b || (baseCount[b] || 0) < 2; },
   ];
+  const pref = SEASON_PREF[seasonOf(days[3])]; // hot dishes in winter, cold ones in summer
   const score = (r, left) => { const pr = profileOf(r);
-    return Math.random() + (pr.veg >= 2 ? 0.6 : 0) + (!hasFish && pr.fish ? (left <= 2 ? 3 : 0.2) : 0); };
+    return Math.random() + (pr.veg >= 2 ? 0.6 : 0) + (!hasFish && pr.fish ? (left <= 2 ? 3 : 0.2) : 0) + (pref && tempOf(r) === pref ? 1.5 : 0); };
   const pick = (p, weekday, left) => {
     const priced = byP[p].length ? byP[p] : pool;
     // try: price + all rules, any price + all rules, then drop the loosest rules one by one
@@ -1245,7 +1278,94 @@ function weekBalance(days){
   const noVeg = prs.filter(p => !p.veg).length, noProt = prs.filter(p => !p.hasProtein).length;
   const baseTxt = Object.entries(bases).sort((a, b) => b[1] - a[1]).map(([b, n]) => `${BASES[b].toLowerCase()}${n > 1 ? ' ×' + n : ''}`).join(', ');
   return `<p class="week-sum"><span><b>Protéines</b> ${kinds.length ? esc(kinds.join(', ')) : '—'}</span><span><b>Bases</b> ${baseTxt || '—'}</span>
+    <span><b>${seasonOf(days[3]).replace(/^./, c => c.toUpperCase())}</b> ${rs.filter(r => tempOf(r) === 'chaud').length} chaud${rs.filter(r => tempOf(r) === 'chaud').length > 1 ? 's' : ''}, ${rs.filter(r => tempOf(r) === 'froid').length} froid${rs.filter(r => tempOf(r) === 'froid').length > 1 ? 's' : ''}</span>
     <span class="${noVeg ? 'late' : ''}"><b>Légumes</b> ${noVeg ? `${noVeg} plat${noVeg > 1 ? 's' : ''} sans légume` : 'dans chaque plat'}</span>${noProt ? `<span class="late">${noProt} plat${noProt > 1 ? 's' : ''} sans protéine</span>` : ''}</p>`;
+}
+/* ---------- moving meals: long press, then drag and drop (iOS-style edit mode) ----------
+   A long press on a meal enters edit mode: meals jiggle and show a delete badge.
+   Dragging a meal onto a free slot moves it, onto another meal swaps them.
+   The shopping list follows: each line's share is re-keyed to the meal's new slot,
+   so ticked (bought) items stay ticked. */
+function rekeyShopping(map){
+  state.shopping.forEach(s => {
+    if (!s.sources) return; const keys = Object.keys(s.sources);
+    if (!keys.some(k => k in map)) return;
+    const src = {}; keys.forEach(k => { src[k in map ? map[k] : k] = s.sources[k]; });
+    const { id, ...data } = s; setDoc('shopping', id, { ...data, sources:src });
+  });
+}
+function moveMeal(fromKey, toDate, toSlot){
+  const toKey = mealKey(toDate, toSlot); if (fromKey === toKey) return;
+  const a = state.meals.find(m => m.id === fromKey); if (!a) return;
+  const b = state.meals.find(m => m.id === toKey);
+  const strip = ({ id, ...d }) => d;
+  setDoc('meals', toKey, { ...strip(a), date:toDate, slot:toSlot });
+  if (b) setDoc('meals', fromKey, { ...strip(b), date:a.date, slot:a.slot }); else delDoc('meals', fromKey);
+  rekeyShopping(b ? { [fromKey]:toKey, [toKey]:fromKey } : { [fromKey]:toKey });
+  const where = `${fmtDay(toDate)} ${toSlot === 'midi' ? 'midi' : 'soir'}`;
+  toast(b ? `${a.title} ⇄ ${b.title}` : `${a.title} → ${where}`);
+}
+function deleteMealKey(key){
+  const m = state.meals.find(x => x.id === key); if (!m) return;
+  if (m.recipeId) syncShopping([{ key, recipe:null, date:m.date }]);
+  delDoc('meals', key);
+  toast(`${m.title} supprimé${m.recipeId ? ' · ingrédients retirés des courses' : ''}`);
+}
+let pressTimer = null, press = null, drag = null, swallowClick = false;
+const LONG_PRESS = 450;
+function cancelPress(){ if (pressTimer) clearTimeout(pressTimer); pressTimer = null; press = null; }
+document.addEventListener('pointerdown', e => {
+  const cell = e.target.closest && e.target.closest('.weeks .meal');
+  if (!cell || (e.pointerType === 'mouse' && e.button !== 0) || e.target.closest('.meal-x')) return;
+  if (state.mealEdit) { if (cell.dataset.filled) startDrag(e, cell); return; }
+  press = { x:e.clientX, y:e.clientY };
+  pressTimer = setTimeout(() => {
+    pressTimer = null; press = null; swallowClick = true;
+    state.mealEdit = true; state.editMeal = null; render();
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch {} }
+  }, LONG_PRESS);
+});
+document.addEventListener('pointermove', e => {
+  if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress(); // the finger is scrolling
+  if (drag) moveDrag(e);
+});
+document.addEventListener('pointerup', e => { cancelPress(); if (drag) endDrag(e, true);
+  if (swallowClick) setTimeout(() => { swallowClick = false; }, 80); }); // only the click that immediately follows is ignored
+document.addEventListener('pointercancel', e => { cancelPress(); if (drag) endDrag(e, false); });
+// the click that ends a long press must not open the meal; a tap outside the meals leaves edit mode
+document.addEventListener('click', e => {
+  if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); return; }
+  if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-bar')) { state.mealEdit = false; render(); }
+}, true);
+document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.weeks .meal')) e.preventDefault(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.mealEdit) { if (drag) endDrag(e, false); state.mealEdit = false; render(); } });
+function startDrag(e, cell){
+  const r = cell.getBoundingClientRect();
+  const ghost = cell.cloneNode(true); ghost.classList.add('meal-ghost'); ghost.classList.remove('sel');
+  ghost.querySelectorAll('.meal-x').forEach(x => x.remove());
+  Object.assign(ghost.style, { width:r.width + 'px', height:r.height + 'px', left:r.left + 'px', top:r.top + 'px' });
+  document.body.appendChild(ghost); cell.classList.add('dragging');
+  drag = { key:cell.dataset.key, cell, ghost, dx:e.clientX - r.left, dy:e.clientY - r.top, over:null, moved:false, sx:e.clientX, sy:e.clientY };
+}
+function moveDrag(e){
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+  drag.moved = true;
+  drag.ghost.style.left = (e.clientX - drag.dx) + 'px'; drag.ghost.style.top = (e.clientY - drag.dy) + 'px';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const target = under && under.closest('.weeks .meal');
+  if (drag.over && drag.over !== target) drag.over.classList.remove('drop-target');
+  drag.over = target && target !== drag.cell ? target : null;
+  if (drag.over) drag.over.classList.add('drop-target');
+  // scroll only once the finger has travelled toward the top or bottom edge (not at the starting point)
+  const edge = 60, bottom = window.innerHeight - edge - (window.innerWidth <= 760 ? 80 : 0);
+  if (e.clientY < edge && e.clientY < drag.sy - 30) window.scrollBy(0, -14);
+  else if (e.clientY > bottom && e.clientY > drag.sy + 30) window.scrollBy(0, 14);
+}
+function endDrag(e, drop){
+  const d = drag; drag = null;
+  d.ghost.remove(); d.cell.classList.remove('dragging'); if (d.over) d.over.classList.remove('drop-target');
+  if (drop && d.moved) swallowClick = true;
+  if (drop && d.moved && d.over) moveMeal(d.key, d.over.dataset.date, d.over.dataset.slot);
 }
 function saveMeal(date, slot, d, keepOpen){
   const key = mealKey(date, slot); const prev = mealOf(date, slot) || {};
@@ -1269,6 +1389,7 @@ function recipeEditor(){
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <div class="field grow"><label for="f-r-title">Nom de la recette</label><input id="f-r-title" name="title" type="text" required placeholder="Ex. Curry de pois chiches" value="${esc(d.title)}"></div>
       <div class="field"><label for="f-r-tags">Étiquettes</label><input id="f-r-tags" name="tags" type="text" placeholder="Ex. rapide, végétarien" value="${esc(d.tags)}"></div>
+      <div class="field"><label for="f-r-temp">Chaud ou froid</label><select id="f-r-temp" name="temp">${[['', 'Automatique (' + (tempOf({ title:d.title, tags:d.tags }) === 'froid' ? 'froid' : 'chaud') + ')'], ['chaud', 'Plat chaud'], ['froid', 'Plat froid']].map(([v,l]) => `<option value="${v}" ${(d.temp||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="f-r-price">Prix</label><select id="f-r-price" name="price">${[['0','Non renseigné'],['1','€ · économique'],['2','€€ · moyen'],['3','€€€ · plus cher']].map(([v,l]) => `<option value="${v}" ${String(d.price||0)===v?'selected':''}>${l}</option>`).join('')}</select></div>
     </div>
     <div><p class="flabel">Ingrédients <span style="text-transform:none;letter-spacing:0;font-weight:400">· pour le couple · tapez un nom : la banque d’ingrédients vous propose la suite</span></p>
@@ -1305,7 +1426,7 @@ function vRecettes(){
   ${list.length ? `<div class="rec-grid">${list.map(r => { const n = planned(r.id); return `<article class="card rec-card">
       <div class="rec-top"><h3>${esc(r.title)}</h3>${priceTag(r.price)}</div>
       <div class="meta"><span>${(r.items||[]).length} ingrédient${(r.items||[]).length>1?'s':''}</span>${(r.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}${n?`<span class="rec-tag">Prévue ${n} fois</span>`:''}</div>
-      ${(() => { const pr = profileOf(r); return `<div class="nutri"><span class="nt ${pr.hasProtein ? '' : 'warn'}">${esc(proteinLabel(pr))}</span>${pr.base ? `<span class="nt">${BASES[pr.base]}</span>` : ''}<span class="nt ${pr.veg ? '' : 'warn'}">${pr.veg ? pr.veg + ' légume' + (pr.veg > 1 ? 's' : '') : 'sans légume'}</span></div>`; })()}
+      ${(() => { const pr = profileOf(r); return `<div class="nutri"><span class="nt ${pr.hasProtein ? '' : 'warn'}">${esc(proteinLabel(pr))}</span>${pr.base ? `<span class="nt">${BASES[pr.base]}</span>` : ''}<span class="nt ${pr.veg ? '' : 'warn'}">${pr.veg ? pr.veg + ' légume' + (pr.veg > 1 ? 's' : '') : 'sans légume'}</span><span class="nt ${tempOf(r) === 'froid' ? 'cold' : 'hot'}">${tempOf(r) === 'froid' ? 'Plat froid' : 'Plat chaud'}</span></div>`; })()}
       <p class="desc">${esc((r.items||[]).map(ingName).join(', '))}</p>
       <div class="acts"><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
         ${state.confirmDel==='rec-'+r.id ? `<button class="btn danger sm" data-act="rec-del" data-id="${r.id}">Confirmer la suppression</button>` : `<button class="btn ghost sm" data-act="askdel" data-id="rec-${r.id}">Supprimer</button>`}</div>
@@ -1631,7 +1752,7 @@ const FORMS = {
       if (!ing) { ing = { id:uid(), name, cat:'Autre', unit:it.unit||'pièce' }; made[name.toLowerCase()] = ing; const { id, ...body } = ing; setDoc('ingredients', id, { ...body, createdAt:Date.now() }); }
       items.push({ ingId:ing.id, name:ing.name, qty:it.qty === '' ? '' : (parseFloat(String(it.qty).replace(',','.')) || ''), unit:it.unit||'pièce' }); });
     const id = dr.id || uid(); const prev = state.recipes.find(r => r.id === id) || {};
-    const recipe = { title, tags:dr.tags.trim(), price:+dr.price||0, steps:dr.steps, link:dr.link.trim(), items, createdAt:prev.createdAt||Date.now() };
+    const recipe = { title, tags:dr.tags.trim(), temp:dr.temp || '', price:+dr.price||0, steps:dr.steps, link:dr.link.trim(), items, createdAt:prev.createdAt||Date.now() };
     setDoc('recipes', id, recipe);
     // keep already-planned future meals in step with the edited recipe
     const planned = state.meals.filter(m => m.recipeId === id && m.date >= today());
@@ -1742,6 +1863,9 @@ document.addEventListener('click', e => {
   else if (act === 'askdel') askConfirm(id);
   else if (act === 'delproj') { state.confirmDel = null; delDoc('projects', id); }
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
+  else if (act === 'meal-x') { deleteMealKey(id); }
+  else if (act === 'meal-edit-done') { state.mealEdit = false; render(); }
+  else if (act === 'meal-open' && state.mealEdit) { /* in edit mode a tap does not open the meal */ }
   else if (act === 'meal-open') { state.editMeal = { date:el.dataset.date, slot:el.dataset.slot }; state.mealQuery = ''; state.confirmDel = null; render(true);
     const ed = document.getElementById('meal-editor'); if (ed) { ed.scrollIntoView({ block:'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); const i = ed.querySelector('.meal-q') || ed.querySelector('input[name=title]'); if (i && !i.value) i.focus({ preventScroll:true }); } }
   else if (act === 'meal-pick') { const f = el.closest('form'); const cook = (f.querySelector('select[name=cook]') || {}).value || '';
@@ -1775,10 +1899,10 @@ document.addEventListener('click', e => {
   else if (act === 'logout') { firebase.auth().signOut().then(() => location.reload()); }
   else if (act === 'load-seed') { loadSeed().then(n => { render(); toast(n ? `${n} recettes chargées` : 'Impossible de lire la banque de recettes. Rechargez la page depuis l’adresse du site.'); }); }
   else if (act === 'rec-price') { state.recipePrice = +el.dataset.v; render(); }
-  else if (act === 'rec-new') { state.recipeDraft = { id:null, title:'', tags:'', price:'0', steps:'', link:'', items:[newRow(), newRow(), newRow()] }; render(true);
+  else if (act === 'rec-new') { state.recipeDraft = { id:null, title:'', tags:'', price:'0', temp:'', steps:'', link:'', items:[newRow(), newRow(), newRow()] }; render(true);
     const t = document.getElementById('f-r-title'); if (t) { t.focus({ preventScroll:true }); document.getElementById('recipe-editor').scrollIntoView({ block:'start' }); } }
   else if (act === 'rec-edit') { e.preventDefault(); const r = state.recipes.find(x => x.id === id); if (!r) return;
-    state.recipeDraft = { id:r.id, title:r.title||'', tags:r.tags||'', price:String(r.price||0), steps:r.steps||'', link:r.link||'',
+    state.recipeDraft = { id:r.id, title:r.title||'', tags:r.tags||'', price:String(r.price||0), temp:r.temp||'', steps:r.steps||'', link:r.link||'',
       items:(r.items||[]).map(it => ({ k:uid(), name:ingName(it), qty:it.qty ?? '', unit:it.unit||'pièce' })).concat(newRow()) };
     state.editMeal = null;
     if (location.hash !== '#recettes') location.hash = 'recettes'; else render(true);
@@ -1800,7 +1924,7 @@ document.addEventListener('toggle', e => {
   const d = e.target; if (!d.dataset || !d.dataset.pid) return;
   d.open ? state.openProj.add(d.dataset.pid) : state.openProj.delete(d.dataset.pid);
 }, true);
-window.addEventListener('hashchange', () => { state.confirmDel = null; render(); });
+window.addEventListener('hashchange', () => { state.confirmDel = null; state.mealEdit = false; render(); });
 
 /* ---------- Firebase (GitHub Pages build) ----------
    When firebase-config.js sets window.FIREBASE_CONFIG, the site signs in with e-mail and password
@@ -1882,6 +2006,9 @@ const SEED_UPDATES = {
       steps:"1. Préchauffer le four à 200 °C. Couper les pommes de terre en quartiers, les carottes en bâtonnets et l'oignon rouge en quartiers.\n2. Les mélanger dans un plat avec 2 c. à soupe d'huile, l'ail en chemise, la moitié du thym, sel et poivre. Enfourner 15 min.\n3. Pendant ce temps, saler et poivrer le filet mignon, puis le saisir 5 min à la poêle dans le reste d'huile pour le dorer sur toutes les faces.\n4. Le poser sur les légumes, le badigeonner de miel et parsemer du reste de thym.\n5. Cuire 25 min à 200 °C en l'arrosant une fois de son jus. Laisser reposer 5 min sous une feuille d'aluminium avant de trancher." },
   ],
 };
+// soupes, potages et veloutés (ajout du 22 novembre)
+const SOUPES = {"ingredients": [{"id": "miso", "name": "Pâte miso", "cat": "Épicerie", "unit": "c. à soupe", "group": "epicerie"}, {"id": "panais", "name": "Panais", "cat": "Fruits & légumes", "unit": "pièce", "group": "legume"}, {"id": "vermicelles", "name": "Vermicelles", "cat": "Épicerie", "unit": "g", "group": "pates"}], "recipes": [{"id": "veloute-champignons", "title": "Velouté de champignons", "tags": "soupe, velouté, végétarien", "price": 1, "link": "", "createdAt": 600, "items": [{"ingId": "champignon", "name": "Champignons de Paris", "qty": 400, "unit": "g"}, {"ingId": "echalote", "name": "Échalote", "qty": 1, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 150, "unit": "g"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 10, "unit": "cl"}, {"ingId": "persil", "name": "Persil", "qty": 1, "unit": "botte"}, {"ingId": "oeuf", "name": "Œufs", "qty": 2, "unit": "pièce"}], "steps": "1. Faire revenir l'échalote puis les champignons émincés 5 min.\n2. Ajouter la pomme de terre en dés, couvrir de 60 cl d'eau avec le bouillon, cuire 20 min.\n3. Mixer avec la crème, saler et poivrer.\n4. Servir avec un œuf mollet et du persil."}, {"id": "soupe-poireaux-pdt", "title": "Potage poireaux-pommes de terre", "tags": "soupe, potage, végétarien, économique", "price": 1, "link": "", "createdAt": 601, "items": [{"ingId": "poireau", "name": "Poireau", "qty": 2, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 300, "unit": "g"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 5, "unit": "cl"}, {"ingId": "gruyere", "name": "Gruyère râpé", "qty": 40, "unit": "g"}], "steps": "1. Faire suer l'oignon et les poireaux émincés dans un peu de beurre.\n2. Ajouter les pommes de terre en dés, 80 cl d'eau et le bouillon.\n3. Cuire 25 min puis mixer avec la crème.\n4. Servir avec du gruyère râpé."}, {"id": "veloute-potiron-coco", "title": "Velouté de potiron au lait de coco", "tags": "soupe, velouté, végétarien", "price": 1, "link": "", "createdAt": 602, "items": [{"ingId": "potiron", "name": "Potiron", "qty": 600, "unit": "g"}, {"ingId": "lait-coco", "name": "Lait de coco", "qty": 1, "unit": "boîte"}, {"ingId": "curry", "name": "Curry en poudre", "qty": 1, "unit": "c. à café"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "pois-chiches", "name": "Pois chiches", "qty": 1, "unit": "boîte"}], "steps": "1. Faire revenir l'oignon avec le curry.\n2. Ajouter le potiron en cubes, le bouillon et 50 cl d'eau, cuire 20 min.\n3. Mixer avec le lait de coco.\n4. Servir avec les pois chiches dorés à la poêle."}, {"id": "soupe-petits-pois-menthe", "title": "Soupe de petits pois à la menthe", "tags": "soupe, végétarien, rapide, 20 min", "price": 1, "link": "", "createdAt": 603, "items": [{"ingId": "petits-pois", "name": "Petits pois", "qty": 400, "unit": "g"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "menthe", "name": "Menthe", "qty": 1, "unit": "botte"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 5, "unit": "cl"}, {"ingId": "feta", "name": "Feta", "qty": 60, "unit": "g"}], "steps": "1. Faire suer l'oignon.\n2. Ajouter les petits pois, le bouillon et 60 cl d'eau, cuire 10 min.\n3. Mixer avec la moitié de la menthe et la crème.\n4. Servir avec la feta émiettée et le reste de menthe."}, {"id": "veloute-chou-fleur-cumin", "title": "Velouté de chou-fleur au cumin", "tags": "soupe, velouté, végétarien", "price": 1, "link": "", "createdAt": 604, "items": [{"ingId": "chou-fleur", "name": "Chou-fleur", "qty": 1, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 150, "unit": "g"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "cumin", "name": "Cumin", "qty": 1, "unit": "c. à café"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "lait", "name": "Lait", "qty": 200, "unit": "ml"}, {"ingId": "oeuf", "name": "Œufs", "qty": 2, "unit": "pièce"}], "steps": "1. Faire revenir l'oignon avec le cumin.\n2. Ajouter le chou-fleur en bouquets, la pomme de terre, le bouillon et 60 cl d'eau, cuire 20 min.\n3. Mixer avec le lait.\n4. Servir avec un œuf mollet."}, {"id": "soupe-poulet-vermicelles", "title": "Bouillon de poulet aux vermicelles", "tags": "soupe, économique", "price": 1, "link": "", "createdAt": 605, "items": [{"ingId": "poulet", "name": "Blanc de poulet", "qty": 200, "unit": "g"}, {"ingId": "carotte", "name": "Carotte", "qty": 2, "unit": "pièce"}, {"ingId": "poireau", "name": "Poireau", "qty": 1, "unit": "pièce"}, {"ingId": "vermicelles", "name": "Vermicelles", "qty": 60, "unit": "g"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "persil", "name": "Persil", "qty": 1, "unit": "botte"}], "steps": "1. Porter 1 L d'eau à ébullition avec le bouillon.\n2. Ajouter le poulet entier, les carottes en rondelles et le poireau émincé, cuire 20 min.\n3. Retirer le poulet, l'effilocher, ajouter les vermicelles 4 min.\n4. Remettre le poulet et servir avec le persil."}, {"id": "harira", "title": "Harira, soupe marocaine", "tags": "soupe, mijoté", "price": 2, "link": "", "createdAt": 606, "items": [{"ingId": "boeuf-braiser", "name": "Bœuf à braiser", "qty": 150, "unit": "g"}, {"ingId": "lentilles-vertes", "name": "Lentilles vertes", "qty": 80, "unit": "g"}, {"ingId": "pois-chiches", "name": "Pois chiches", "qty": 1, "unit": "boîte"}, {"ingId": "tomates-concassees", "name": "Tomates concassées", "qty": 1, "unit": "boîte"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "coriandre", "name": "Coriandre", "qty": 1, "unit": "botte"}, {"ingId": "ras-el-hanout", "name": "Ras el hanout", "qty": 1, "unit": "c. à café"}, {"ingId": "citron", "name": "Citron", "qty": 1, "unit": "pièce"}], "steps": "1. Faire revenir l'oignon et la viande en petits dés avec le ras el hanout.\n2. Ajouter les tomates, les lentilles et 1 L d'eau, cuire 40 min.\n3. Ajouter les pois chiches égouttés 10 min.\n4. Servir avec la coriandre et un filet de citron."}, {"id": "soupe-poisson", "title": "Soupe de poisson express", "tags": "soupe, poisson", "price": 3, "link": "", "createdAt": 607, "items": [{"ingId": "cabillaud", "name": "Dos de cabillaud", "qty": 1, "unit": "pièce"}, {"ingId": "crevettes", "name": "Crevettes décortiquées", "qty": 100, "unit": "g"}, {"ingId": "tomates-concassees", "name": "Tomates concassées", "qty": 1, "unit": "boîte"}, {"ingId": "poireau", "name": "Poireau", "qty": 1, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 200, "unit": "g"}, {"ingId": "ail", "name": "Ail", "qty": 2, "unit": "gousse"}, {"ingId": "paprika", "name": "Paprika", "qty": 1, "unit": "c. à café"}], "steps": "1. Faire revenir le poireau émincé et l'ail.\n2. Ajouter les tomates, le paprika, les pommes de terre en dés et 80 cl d'eau, cuire 15 min.\n3. Ajouter le cabillaud en morceaux et les crevettes, cuire 5 min à frémissement.\n4. Servir avec du pain grillé."}, {"id": "chowder-saumon", "title": "Chowder au saumon", "tags": "soupe, poisson", "price": 2, "link": "", "createdAt": 608, "items": [{"ingId": "saumon", "name": "Pavé de saumon", "qty": 1, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 300, "unit": "g"}, {"ingId": "poireau", "name": "Poireau", "qty": 1, "unit": "pièce"}, {"ingId": "lait", "name": "Lait", "qty": 400, "unit": "ml"}, {"ingId": "beurre", "name": "Beurre", "qty": 20, "unit": "g"}, {"ingId": "persil", "name": "Persil", "qty": 1, "unit": "botte"}], "steps": "1. Faire fondre le poireau dans le beurre.\n2. Ajouter les pommes de terre en dés, le lait et 20 cl d'eau, cuire 15 min sans faire bouillir.\n3. Ajouter le saumon en cubes, cuire 5 min.\n4. Écraser légèrement quelques pommes de terre pour épaissir, servir avec le persil."}, {"id": "soupe-pistou", "title": "Soupe au pistou", "tags": "soupe, végétarien, été", "price": 1, "link": "", "createdAt": 609, "items": [{"ingId": "courgette", "name": "Courgette", "qty": 1, "unit": "pièce"}, {"ingId": "haricots-verts", "name": "Haricots verts", "qty": 150, "unit": "g"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 200, "unit": "g"}, {"ingId": "haricots-blancs", "name": "Haricots blancs", "qty": 1, "unit": "boîte"}, {"ingId": "basilic", "name": "Basilic", "qty": 1, "unit": "botte"}, {"ingId": "ail", "name": "Ail", "qty": 2, "unit": "gousse"}, {"ingId": "parmesan", "name": "Parmesan", "qty": 40, "unit": "g"}, {"ingId": "huile-olive", "name": "Huile d'olive", "qty": 3, "unit": "c. à soupe"}], "steps": "1. Couper les légumes en dés, les cuire 20 min dans 1 L d'eau salée.\n2. Ajouter les haricots blancs égouttés 5 min.\n3. Pilonner ou mixer le basilic, l'ail, le parmesan et l'huile pour le pistou.\n4. Servir la soupe avec une cuillère de pistou."}, {"id": "veloute-patate-douce", "title": "Velouté de patate douce et gingembre", "tags": "soupe, velouté, végétarien", "price": 1, "link": "", "createdAt": 610, "items": [{"ingId": "patate-douce", "name": "Patate douce", "qty": 500, "unit": "g"}, {"ingId": "carotte", "name": "Carotte", "qty": 1, "unit": "pièce"}, {"ingId": "gingembre", "name": "Gingembre frais", "qty": 15, "unit": "g"}, {"ingId": "lait-coco", "name": "Lait de coco", "qty": 1, "unit": "boîte"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "lentilles-corail", "name": "Lentilles corail", "qty": 80, "unit": "g"}], "steps": "1. Faire revenir le gingembre râpé.\n2. Ajouter la patate douce et la carotte en morceaux, les lentilles rincées, le bouillon et 70 cl d'eau, cuire 20 min.\n3. Mixer avec le lait de coco.\n4. Rectifier l'assaisonnement."}, {"id": "soupe-miso-tofu", "title": "Soupe miso au tofu", "tags": "soupe, végétarien, rapide, 15 min", "price": 1, "link": "", "createdAt": 611, "items": [{"ingId": "miso", "name": "Pâte miso", "qty": 2, "unit": "c. à soupe"}, {"ingId": "tofu", "name": "Tofu ferme", "qty": 150, "unit": "g"}, {"ingId": "champignon", "name": "Champignons de Paris", "qty": 100, "unit": "g"}, {"ingId": "poireau", "name": "Poireau", "qty": 1, "unit": "pièce"}, {"ingId": "nouilles", "name": "Nouilles chinoises", "qty": 80, "unit": "g"}, {"ingId": "epinard", "name": "Épinards", "qty": 60, "unit": "g"}], "steps": "1. Porter 80 cl d'eau à frémissement.\n2. Ajouter le poireau émincé, les champignons et les nouilles, cuire 4 min.\n3. Hors du feu, délayer le miso dans un peu de bouillon puis l'ajouter (il ne doit pas bouillir).\n4. Ajouter le tofu en dés et les épinards, servir aussitôt."}, {"id": "soupe-tomates-rotie", "title": "Soupe de tomates rôties", "tags": "soupe, végétarien, été", "price": 1, "link": "", "createdAt": 612, "items": [{"ingId": "tomate", "name": "Tomate", "qty": 8, "unit": "pièce"}, {"ingId": "oignon-rouge", "name": "Oignon rouge", "qty": 1, "unit": "pièce"}, {"ingId": "ail", "name": "Ail", "qty": 3, "unit": "gousse"}, {"ingId": "basilic", "name": "Basilic", "qty": 1, "unit": "botte"}, {"ingId": "huile-olive", "name": "Huile d'olive", "qty": 2, "unit": "c. à soupe"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "mozzarella", "name": "Mozzarella", "qty": 1, "unit": "pièce"}], "steps": "1. Rôtir les tomates coupées en deux, l'oignon et l'ail 30 min à 200 °C avec l'huile.\n2. Mixer avec le bouillon et 30 cl d'eau chaude.\n3. Réchauffer 5 min.\n4. Servir avec la mozzarella et le basilic."}, {"id": "veloute-epinards-oeuf", "title": "Velouté d'épinards et œuf poché", "tags": "soupe, velouté, végétarien", "price": 1, "link": "", "createdAt": 613, "items": [{"ingId": "epinard", "name": "Épinards", "qty": 300, "unit": "g"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 200, "unit": "g"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 5, "unit": "cl"}, {"ingId": "oeuf", "name": "Œufs", "qty": 2, "unit": "pièce"}], "steps": "1. Faire suer l'oignon, ajouter les pommes de terre, le bouillon et 60 cl d'eau, cuire 15 min.\n2. Ajouter les épinards 3 min.\n3. Mixer avec la crème.\n4. Pocher les œufs 3 min dans de l'eau frémissante vinaigrée et les poser sur le velouté."}, {"id": "soupe-chou-saucisse", "title": "Soupe au chou et saucisses", "tags": "soupe, hiver, mijoté", "price": 2, "link": "", "createdAt": 614, "items": [{"ingId": "chou-vert", "name": "Chou vert", "qty": 1, "unit": "pièce"}, {"ingId": "saucisse", "name": "Saucisses de Toulouse", "qty": 2, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 300, "unit": "g"}, {"ingId": "carotte", "name": "Carotte", "qty": 2, "unit": "pièce"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}], "steps": "1. Faire dorer les saucisses en tronçons avec l'oignon.\n2. Ajouter le chou émincé, les carottes et les pommes de terre en morceaux.\n3. Couvrir de 1,2 L d'eau avec le bouillon, cuire 40 min.\n4. Servir bien chaud."}, {"id": "soupe-courgettes-chevre", "title": "Velouté de courgettes au chèvre", "tags": "soupe, velouté, végétarien, rapide, 20 min", "price": 1, "link": "", "createdAt": 615, "items": [{"ingId": "courgette", "name": "Courgette", "qty": 3, "unit": "pièce"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "chevre", "name": "Bûche de chèvre", "qty": 80, "unit": "g"}, {"ingId": "basilic", "name": "Basilic", "qty": 1, "unit": "botte"}, {"ingId": "pois-chiches", "name": "Pois chiches", "qty": 1, "unit": "boîte"}], "steps": "1. Faire suer l'oignon, ajouter les courgettes en rondelles, le bouillon et 50 cl d'eau, cuire 12 min.\n2. Mixer avec la moitié du chèvre.\n3. Ajouter les pois chiches égouttés et réchauffer.\n4. Servir avec le reste du chèvre et le basilic."}, {"id": "soupe-haricots-chorizo", "title": "Soupe de haricots blancs au chorizo", "tags": "soupe, économique", "price": 1, "link": "", "createdAt": 616, "items": [{"ingId": "haricots-blancs", "name": "Haricots blancs", "qty": 1, "unit": "boîte"}, {"ingId": "chorizo", "name": "Chorizo", "qty": 60, "unit": "g"}, {"ingId": "tomates-concassees", "name": "Tomates concassées", "qty": 1, "unit": "boîte"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "ail", "name": "Ail", "qty": 1, "unit": "gousse"}, {"ingId": "epinard", "name": "Épinards", "qty": 80, "unit": "g"}], "steps": "1. Faire revenir le chorizo en dés, l'oignon et l'ail.\n2. Ajouter les tomates, les haricots égouttés et 50 cl d'eau, cuire 15 min.\n3. Ajouter les épinards 2 min.\n4. Servir avec du pain."}, {"id": "veloute-panais", "title": "Velouté de panais et noix", "tags": "soupe, velouté, végétarien, hiver", "price": 1, "link": "", "createdAt": 617, "items": [{"ingId": "panais", "name": "Panais", "qty": 4, "unit": "pièce"}, {"ingId": "pomme-de-terre", "name": "Pomme de terre", "qty": 150, "unit": "g"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 10, "unit": "cl"}, {"ingId": "noix", "name": "Cerneaux de noix", "qty": 30, "unit": "g"}, {"ingId": "oeuf", "name": "Œufs", "qty": 2, "unit": "pièce"}], "steps": "1. Faire suer l'oignon, ajouter les panais et la pomme de terre en morceaux, le bouillon et 70 cl d'eau, cuire 25 min.\n2. Mixer avec la crème.\n3. Torréfier les noix à sec.\n4. Servir avec les noix concassées et un œuf mollet."}, {"id": "soupe-pois-chiches-epinards", "title": "Soupe de pois chiches et épinards", "tags": "soupe, végétarien, rapide, 20 min", "price": 1, "link": "", "createdAt": 618, "items": [{"ingId": "pois-chiches", "name": "Pois chiches", "qty": 1, "unit": "boîte"}, {"ingId": "epinard", "name": "Épinards", "qty": 150, "unit": "g"}, {"ingId": "tomates-concassees", "name": "Tomates concassées", "qty": 1, "unit": "boîte"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "cumin", "name": "Cumin", "qty": 1, "unit": "c. à café"}, {"ingId": "citron", "name": "Citron", "qty": 1, "unit": "pièce"}], "steps": "1. Faire revenir l'oignon avec le cumin.\n2. Ajouter les tomates, les pois chiches égouttés et 60 cl d'eau, cuire 12 min.\n3. Ajouter les épinards 2 min.\n4. Servir avec un filet de citron."}, {"id": "pho-boeuf", "title": "Soupe de nouilles au bœuf, façon pho", "tags": "soupe, rapide, 25 min", "price": 2, "link": "", "createdAt": 619, "items": [{"ingId": "boeuf-braiser", "name": "Bœuf à braiser", "qty": 200, "unit": "g"}, {"ingId": "nouilles", "name": "Nouilles chinoises", "qty": 150, "unit": "g"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "gingembre", "name": "Gingembre frais", "qty": 20, "unit": "g"}, {"ingId": "coriandre", "name": "Coriandre", "qty": 1, "unit": "botte"}, {"ingId": "citron", "name": "Citron", "qty": 1, "unit": "pièce"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "sauce-soja", "name": "Sauce soja", "qty": 2, "unit": "c. à soupe"}], "steps": "1. Porter 1 L d'eau à ébullition avec le bouillon, le gingembre en lamelles, l'oignon coupé en deux et la sauce soja, laisser infuser 15 min.\n2. Cuire les nouilles à part.\n3. Trancher le bœuf très finement.\n4. Dans les bols, mettre nouilles et bœuf cru, verser le bouillon brûlant dessus, ajouter coriandre et citron."}, {"id": "veloute-lentilles-lardons", "title": "Velouté de lentilles aux lardons", "tags": "soupe, velouté, hiver", "price": 1, "link": "", "createdAt": 620, "items": [{"ingId": "lentilles-vertes", "name": "Lentilles vertes", "qty": 150, "unit": "g"}, {"ingId": "lardons", "name": "Lardons", "qty": 80, "unit": "g"}, {"ingId": "carotte", "name": "Carotte", "qty": 1, "unit": "pièce"}, {"ingId": "oignon", "name": "Oignon", "qty": 1, "unit": "pièce"}, {"ingId": "bouillon", "name": "Bouillon cube", "qty": 1, "unit": "pièce"}, {"ingId": "creme", "name": "Crème fraîche", "qty": 10, "unit": "cl"}], "steps": "1. Faire revenir les lardons, les réserver. Faire suer l'oignon et la carotte dans la graisse.\n2. Ajouter les lentilles, le bouillon et 1 L d'eau, cuire 30 min.\n3. Mixer avec la crème.\n4. Servir avec les lardons croustillants."}]};
+SEED_UPDATES.ingredients.push(...SOUPES.ingredients); SEED_UPDATES.recipes.push(...SOUPES.recipes);
 let seedUpdating = false;
 async function applySeedUpdates(){
   if (seedUpdating) return; seedUpdating = true;
