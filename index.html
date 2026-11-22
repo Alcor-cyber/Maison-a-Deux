@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Foyer à deux">
+<script src="firebase-config.js"></script>
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -95,7 +96,7 @@ nav svg{width:20px;height:20px;flex:none}
 .field{display:flex;flex-direction:column;gap:4px;flex:1 1 140px;min-width:0}
 .field.grow{flex:3 1 240px}
 .field label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;min-height:40px}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;min-height:40px}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:var(--r-sm);padding:9px 16px;min-height:40px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
 .btn:hover{filter:brightness(1.06)}
@@ -276,6 +277,11 @@ body[data-space="choix"] .side,body[data-space="choix"] .mtop{display:none}
 body[data-space="choix"] .app{grid-template-columns:minmax(0,1fr)}
 body[data-space="choix"] .main{padding-block:0}
 .chooser{min-height:94vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:28px;max-width:940px;margin:0 auto;padding-block:40px}
+.login{width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px}
+.login .field{flex:none}
+.login input{min-height:46px;font-size:1rem}
+.login .btn{min-height:48px;font-size:1rem}
+.login-err{background:var(--danger-soft);color:var(--danger);border-radius:var(--r-sm);padding:10px 12px;font-size:.9rem}
 .chooser-head{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
 .brand-mark.big{margin-bottom:10px}
 .brand-mark.big i{width:30px;height:30px}
@@ -418,7 +424,7 @@ body[data-space="maison"] nav a[aria-current="page"] svg{color:var(--lamp)}
 const COLS = ['tasks','shopping','expenses','events','projects','meals','recipes','ingredients','rooms','devices'];
 const DEFAULT_CFG = { a:'Partenaire A', b:'Partenaire B' };
 const state = { tasks:[], shopping:[], expenses:[], events:[], projects:[], meals:[], recipes:[], ingredients:[], rooms:[], devices:[], maisonCfg:{ steps:{} }, config:{...DEFAULT_CFG}, editMeal:null,
-  recipeDraft:null, recipeQuery:'', ingQuery:'', shopFinish:false, shopPay:{ payer:null }, shopPaid:null,
+  recipeDraft:null, recipeQuery:'', ingQuery:'', shopFinish:false, shopPay:{ payer:null }, shopPaid:null, user:null, loginError:'', loginBusy:false,
   mode:'loading', taskWho:'all', showDone:false, month:null, openProj:new Set(), confirmDel:null };
 let db = null;
 
@@ -470,7 +476,7 @@ const route = () => {
   if (r === 'choix' || ROUTES.some(x=>x[0]===r) || SUB[r] || MROUTES.some(x=>x[0]===r)) return r;
   return SPACE_HOME[remembered()] || 'choix'; // opening the site asks where to go, unless this device remembers
 };
-const spaceOf = r => r === 'choix' ? 'choix' : r === 'en-courses' ? 'shop' : r.startsWith('maison') ? 'maison' : 'foyer';
+const spaceOf = r => r === 'choix' || r === 'login' ? 'choix' : r === 'en-courses' ? 'shop' : r.startsWith('maison') ? 'maison' : 'foyer';
 const UNITS = ['pièce','g','kg','ml','cl','L','c. à soupe','c. à café','gousse','botte','boîte','paquet','sachet','tranche','pincée'];
 const numFmt = n => (Math.round(n*100)/100).toLocaleString('fr-FR');
 const qtyStr = (q, u) => { const n = parseFloat(String(q??'').replace(',','.')); if (!(n > 0)) return u && u !== 'pièce' ? u : ''; return !u || u === 'pièce' ? numFmt(n) : numFmt(n) + ' ' + u; };
@@ -524,7 +530,8 @@ function fail(e){
   const c = e && e.code;
   toast(c === 'invalid_argument' ? "Vous n'avez pas le droit de modifier ces données. Demandez un accès Contributeur."
     : c === 'quota_exceeded' ? "L'espace de stockage est plein. Supprimez d'anciens éléments."
-    : c === 'resource_exhausted' ? 'Trop de modifications à la fois. Réessayez dans un instant.'
+    : c === 'resource_exhausted' || c === 'resource-exhausted' ? 'Trop de modifications à la fois. Réessayez dans un instant.'
+    : c === 'permission-denied' ? "Ce compte n'a pas le droit de modifier les données (règles Firestore)."
     : "L'enregistrement a échoué. Vérifiez la connexion et réessayez.");
 }
 async function addDoc(col, data){
@@ -776,6 +783,7 @@ function vProjets(){
 function vReglages(){
   const exCount = COLS.reduce((n,c)=>n+state[c].filter(x=>x.example).length,0);
   const modeTxt = state.mode==='local' ? "Les données sont enregistrées dans ce navigateur uniquement : elles ne sont pas partagées avec votre partenaire."
+    : state.user ? `Les données sont sauvegardées en ligne et partagées entre vous deux. Connecté avec ${esc(state.user)}.`
     : "Les données sont partagées : tout ce que l’un ajoute apparaît chez l’autre en direct. Partagez ce lien avec votre partenaire en lui donnant l’accès Contributeur.";
   return `
   <div class="head"><div><p class="eyebrow">Foyer à deux</p><h1>Réglages</h1></div></div>
@@ -788,7 +796,8 @@ function vReglages(){
       </div>
       <div><button class="btn" type="submit">Enregistrer</button></div>
     </form>
-    <section class="card"><h2>Synchronisation</h2><p class="sub" style="margin-top:6px">${modeTxt}</p></section>
+    <section class="card"><h2>Synchronisation</h2><p class="sub" style="margin-top:6px">${modeTxt}</p>
+      ${state.user ? '<button class="btn ghost" data-act="logout" style="margin-top:12px">Se déconnecter</button>' : ''}</section>
     ${exCount ? `<section class="card"><h2>Exemples</h2><p class="sub" style="margin:6px 0 12px">${exCount} élément${exCount>1?'s':''} marqué${exCount>1?'s':''} « exemple » ont été ajoutés pour vous montrer l’outil.</p>
       ${state.confirmDel==='examples' ? `<button class="btn danger" data-act="delexamples">Confirmer la suppression des exemples</button>` : `<button class="btn ghost" data-act="askexamples">Supprimer les exemples</button>`}</section>` : ''}
   </div>`;
@@ -1292,13 +1301,13 @@ function applyScene(id){
   toast(`Scène « ${s.name} » appliquée${state.maisonCfg.connected ? '' : ' (aperçu)'}`);
 }
 
-const VIEWS = { 'en-courses':vEnCourses, choix:vChoix, maison:vMaison, 'maison-config':vMaisonConfig, accueil:vAccueil, taches:vTaches, courses:vCourses, menus:vMenus, recettes:vRecettes, ingredients:vIngredients, budget:vBudget, agenda:vAgenda, projets:vProjets, reglages:vReglages };
+const VIEWS = { login:() => vLogin(), 'en-courses':vEnCourses, choix:vChoix, maison:vMaison, 'maison-config':vMaisonConfig, accueil:vAccueil, taches:vTaches, courses:vCourses, menus:vMenus, recettes:vRecettes, ingredients:vIngredients, budget:vBudget, agenda:vAgenda, projets:vProjets, reglages:vReglages };
 
 /* ---------- render ---------- */
 let lastRoute = null, raf = 0;
 function scheduleRender(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
 function render(structural){
-  const r = route();
+  const r = state.mode === 'login' ? 'login' : route();
   const view = document.getElementById('view');
   // keep in-progress form input across live updates
   const drafts = {}; let focus = null;
@@ -1319,7 +1328,7 @@ function render(structural){
   for (const [id, v] of Object.entries(drafts)) { const el = document.getElementById(id); if (el && el.closest('form[data-form]')) el.value = v; }
   if (focus) { const el = document.getElementById(focus.id); if (el) { el.focus(); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} } }
   const [cls, txt] = { shared:['ok','Partagé en direct avec votre partenaire'], local:['warn','Enregistré sur cet appareil uniquement'],
-    loading:['','Connexion…'], stale:['warn','Connexion lente'], error:['err','Synchronisation interrompue'] }[state.mode];
+    loading:['','Connexion…'], login:['','Connexion requise'], stale:['warn','Connexion lente'], error:['err','Synchronisation interrompue'] }[state.mode];
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
   if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses'); }
@@ -1329,6 +1338,12 @@ function render(structural){
 const FORMS = {
   task(d){ return addDoc('tasks', { title:d.title.trim(), who:d.who, due:d.due||'', rec:d.rec||'none', done:false }); },
   shop(d){ return addDoc('shopping', { name:d.name.trim(), qty:(d.qty||'').trim(), cat:d.cat, done:false }); },
+  login(d){
+    state.loginBusy = true; state.loginError = ''; render();
+    firebase.auth().signInWithEmailAndPassword(d.email.trim(), d.pass)
+      .catch(e => { state.loginError = LOGIN_ERRORS[e && e.code] || 'La connexion a échoué. Réessayez.'; })
+      .finally(() => { state.loginBusy = false; render(); });
+  },
   // end of shopping: record what it cost in the shared budget (Courses, split 50/50)
   shoppay(d){
     const total = Math.round(num(d.total) * 100) / 100, who = state.shopPay.payer;
@@ -1391,7 +1406,7 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const d = Object.fromEntries(new FormData(f));
   const kind = f.dataset.form;
-  if (kind !== 'config' && kind !== 'meal' && kind !== 'recipe' && kind !== 'shoppay') { f.reset(); const first = f.querySelector('input[type=text]'); if (first) first.focus(); }
+  if (kind !== 'config' && kind !== 'meal' && kind !== 'recipe' && kind !== 'shoppay' && kind !== 'login') { f.reset(); const first = f.querySelector('input[type=text]'); if (first) first.focus(); }
   FORMS[kind](d, f);
 });
 function draftSync(el){
@@ -1495,6 +1510,7 @@ document.addEventListener('click', e => {
   else if (act === 'gen-week') genWeek(+el.dataset.off, false);
   else if (act === 'gen-askall') askConfirm('gen-' + el.dataset.off);
   else if (act === 'gen-all') genWeek(+el.dataset.off, true);
+  else if (act === 'logout') { firebase.auth().signOut().then(() => location.reload()); }
   else if (act === 'load-seed') { loadSeed().then(n => { render(); toast(n ? `${n} recettes chargées` : 'Impossible de lire la banque de recettes. Rechargez la page depuis l’adresse du site.'); }); }
   else if (act === 'rec-price') { state.recipePrice = +el.dataset.v; render(); }
   else if (act === 'rec-new') { state.recipeDraft = { id:null, title:'', tags:'', price:'0', steps:'', link:'', items:[newRow(), newRow(), newRow()] }; render(true);
@@ -1524,12 +1540,78 @@ document.addEventListener('toggle', e => {
 }, true);
 window.addEventListener('hashchange', () => { state.confirmDel = null; render(); });
 
+/* ---------- Firebase (GitHub Pages build) ----------
+   When firebase-config.js sets window.FIREBASE_CONFIG, the site signs in with e-mail and password
+   and keeps every collection in Cloud Firestore. The compat SDK has the same collection / doc /
+   onSnapshot shape as the claude.ai store, so connect() below serves both. */
+const FB_VERSION = '10.12.2';
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); });
+const LOGIN_ERRORS = {
+  'auth/invalid-credential':'E-mail ou mot de passe incorrect.', 'auth/wrong-password':'E-mail ou mot de passe incorrect.',
+  'auth/user-not-found':'E-mail ou mot de passe incorrect.', 'auth/invalid-email':'Cette adresse e-mail n’est pas valide.',
+  'auth/too-many-requests':'Trop d’essais. Patientez quelques minutes puis réessayez.',
+  'auth/network-request-failed':'Pas de connexion internet. Vérifiez le réseau et réessayez.',
+  'auth/user-disabled':'Ce compte a été désactivé dans Firebase.' };
+async function startLocal(){ state.mode = 'local'; loadLocal(); if (!state.recipes.length) await loadSeed(); render(); }
+async function startFirebase(){
+  state.mode = 'loading'; render();
+  try { if (!window.firebase) for (const m of ['app', 'auth', 'firestore']) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${m}-compat.js`); }
+  catch { await startLocal(); toast('Le serveur en ligne ne répond pas : données de cet appareil uniquement.'); return; }
+  if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+  const fs = firebase.firestore();
+  try { fs.settings({ ignoreUndefinedProperties:true, merge:true }); } catch {}
+  try { await fs.enablePersistence({ synchronizeTabs:true }); } catch {} // offline copy for the store with no signal
+  let started = false;
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { state.user = null; state.mode = 'login'; render(true); return; }
+    if (started) return;
+    started = true; state.user = user.email; state.loginError = ''; state.mode = 'loading'; render(true);
+    try { await firstCloudRun(fs); }
+    catch (e) {
+      started = false;
+      state.loginError = e && e.code === 'permission-denied'
+        ? `Le compte ${user.email} n’a pas accès aux données. Ajoutez son adresse dans les règles Firestore (voir FIREBASE.md).`
+        : 'Impossible de joindre la base en ligne. Vérifiez la connexion et réessayez.';
+      await firebase.auth().signOut(); return;
+    }
+    connect(fs);
+  });
+}
+// First sign-in on an empty online base: send this device's data, or the starter recipe bank
+async function firstCloudRun(fs){
+  const probe = await fs.collection('recipes').limit(1).get();
+  if (!probe.empty) return;
+  loadLocal(); if (!state.recipes.length) await loadSeed();
+  const writes = [];
+  COLS.forEach(c => (state[c] || []).forEach(({ id, ...data }) => writes.push([fs.collection(c).doc(String(id)), data])));
+  if (state.config.a !== DEFAULT_CFG.a || state.config.b !== DEFAULT_CFG.b) writes.push([fs.doc('config/couple'), state.config]);
+  if (Object.keys(state.maisonCfg.steps || {}).length) writes.push([fs.doc('config/maison'), state.maisonCfg]);
+  for (let i = 0; i < writes.length; i += 400) { const b = fs.batch(); writes.slice(i, i + 400).forEach(([ref, data]) => b.set(ref, data)); await b.commit(); }
+  toast(`${writes.length} éléments envoyés dans la sauvegarde en ligne`);
+}
+function vLogin(){
+  return `<div class="chooser">
+    <div class="chooser-head"><span class="brand-mark big"><i></i><i></i></span><h1>Foyer à deux</h1>
+      <p class="sub">Connectez-vous pour retrouver vos données, sauvegardées en ligne et partagées entre vous deux.</p></div>
+    <form class="card login" data-form="login" autocomplete="on">
+      <div class="field"><label for="f-login-email">E-mail</label><input id="f-login-email" name="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="f-login-pass">Mot de passe</label><input id="f-login-pass" name="pass" type="password" autocomplete="current-password" required></div>
+      ${state.loginError ? `<p class="login-err" role="alert">${esc(state.loginError)}</p>` : ''}
+      <button class="btn" type="submit" ${state.loginBusy ? 'disabled' : ''}>${state.loginBusy ? 'Connexion…' : 'Se connecter'}</button>
+    </form>
+  </div>`;
+}
+
 /* ---------- start ---------- */
 render();
 (async () => {
   let d = null;
   try { d = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch {}
-  if (!d) { state.mode = 'local'; loadLocal(); if (!state.recipes.length) await loadSeed(); render(); return; }
+  if (d) return connect(d);
+  if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) return startFirebase();
+  startLocal();
+})();
+function connect(d){
   db = d;
   const pending = new Set([...COLS, 'config', 'maison']);
   const timer = setTimeout(() => { if (pending.size && state.mode === 'loading') { state.mode = 'stale'; scheduleRender(); } }, 10000);
@@ -1538,7 +1620,7 @@ render();
   COLS.forEach(c => db.collection(c).onSnapshot(s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
   db.doc('config/couple').onSnapshot(s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
   db.doc('config/maison').onSnapshot(s => { if (s.exists) state.maisonCfg = { steps:{}, ...s.data() }; settle('maison', s); scheduleRender(); }, onErr('maison'));
-})();
+}
 })();
 </script>
 

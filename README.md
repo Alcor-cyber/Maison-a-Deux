@@ -13,6 +13,9 @@ Le site est une seule page HTML, sans installation ni serveur : GitHub Pages suf
 |---|---|
 | `index.html` | Le site complet (HTML, CSS et JavaScript), avec la banque de départ intégrée : 149 recettes et 120 ingrédients, chargés à la première visite. Ce fichier suffit à lui seul |
 | `data/seed.json` | Une copie de cette banque au format JSON, pour la consulter ou la modifier (facultatif) |
+| `firebase-config.js` | Les réglages Firebase pour la sauvegarde en ligne (à remplir, voir `FIREBASE.md`) |
+| `firestore.rules` | Les règles qui réservent les données à vos deux comptes |
+| `FIREBASE.md` | Le guide pas à pas pour activer la sauvegarde en ligne et le partage |
 | `manifest.webmanifest` et `icons/` | Pour installer le site sur l'écran d'accueil du téléphone, comme une appli |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
 
@@ -35,8 +38,8 @@ Sur la tablette murale, cochez « Se souvenir de mon choix sur cet appareil » e
 
 ## Ce qui change par rapport à la version claude.ai
 
-- **Les données restent sur chaque appareil.** Sur claude.ai, le site partageait les données entre vous deux en direct. Sur GitHub Pages, chaque téléphone garde ses propres tâches, courses, menus et dépenses (stockés dans le navigateur). Pour retrouver le partage, il faut brancher une base de données en ligne, par exemple Firebase ou Supabase (gratuit à cette échelle).
-- **Effacer les données du navigateur efface celles du site** sur cet appareil.
+- **Sans Firebase, les données restent sur chaque appareil.** Pour les sauvegarder en ligne et les partager entre vous deux en direct, suivez `FIREBASE.md` (gratuit, environ 15 minutes).
+- **Sans Firebase, effacer les données du navigateur efface celles du site** sur cet appareil. Avec Firebase, il suffit de se reconnecter.
 - **Ma Maison reste en mode aperçu** : le branchement prévu passait par un connecteur Claude, qui n'existe pas en dehors de claude.ai. Hors claude.ai, la page devra appeler Home Assistant directement.
 
 ## Mettre à jour le site

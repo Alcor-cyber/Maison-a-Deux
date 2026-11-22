@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Seuls vos deux comptes peuvent lire et modifier les données.
+    // Remplacez les deux adresses par celles des comptes créés dans Authentication.
+    function estDuFoyer() {
+      return request.auth != null
+        && request.auth.token.email in ['thomas@exemple.fr', 'christelle@exemple.fr'];
+    }
+    match /{document=**} {
+      allow read, write: if estDuFoyer();
+    }
+  }
+}
