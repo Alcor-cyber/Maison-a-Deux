@@ -1,0 +1,11 @@
+{
+  "name": "foyer-a-deux-notifications",
+  "description": "Envoie une notification au partenaire quand l'autre ajoute quelque chose dans Foyer à deux",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.1"
+  },
+  "private": true
+}
