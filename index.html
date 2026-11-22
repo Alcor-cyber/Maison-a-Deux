@@ -830,7 +830,7 @@ function projCard(p){
 function vProjets(){
   const cols = Object.keys(STATUS).map(k => [k, state.projects.filter(p => (p.status||'idee') === k).sort((x,y)=>(x.deadline||'9999').localeCompare(y.deadline||'9999'))]);
   return `
-  <div class="head"><div><p class="eyebrow">À deux</p><h1>Projets</h1><p class="sub">Voyages, travaux, déménagement, mariage… Découpez chaque projet en étapes et suivez l’avancement ensemble.</p></div></div>
+  <div class="head"><div><p class="eyebrow">À deux</p><h1>Projets</h1></div></div>
   <form class="addform" data-form="project" autocomplete="off">
     <div class="field grow"><label for="f-p-title">Projet</label><input id="f-p-title" name="title" type="text" required placeholder="Ex. Week-end en Bretagne"></div>
     <div class="field grow"><label for="f-p-desc">Description</label><input id="f-p-desc" name="desc" type="text" placeholder="Facultatif"></div>
@@ -1019,7 +1019,7 @@ function vMenus(){
       ${editHere ? mealEditor() : ''}`;
   }).join('');
   return `
-  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1><p class="sub">Cliquez sur un repas et choisissez une recette de votre banque : ses ingrédients s’ajoutent tout seuls à la liste de courses. « Générer la semaine » remplit les dîners (le même plat mardi et mercredi, puis jeudi et vendredi, chacun avec une protéine et une base différentes) et les deux repas du week-end, avec des légumes dans chaque plat ; les midis en semaine restent à votre choix. Restez appuyé sur un plat pour le déplacer ou le supprimer.</p></div></div>
+  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1></div></div>
   ${menuTabs('menus')}
   ${state.mealEdit ? `<div class="edit-bar" role="status"><span>Faites glisser un plat vers un autre jour, ou touchez <b>×</b> pour le supprimer.</span><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
   <div class="weeks ${state.mealEdit ? 'edit-mode' : ''}">${weeks}</div>`;
