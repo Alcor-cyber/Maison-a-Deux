@@ -11,8 +11,8 @@ Le site est une seule page HTML, sans installation ni serveur : GitHub Pages suf
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | Le site complet (HTML, CSS et JavaScript) |
-| `data/seed.json` | La banque de départ : 149 recettes et 120 ingrédients, chargée à la première visite |
+| `index.html` | Le site complet (HTML, CSS et JavaScript), avec la banque de départ intégrée : 149 recettes et 120 ingrédients, chargés à la première visite. Ce fichier suffit à lui seul |
+| `data/seed.json` | Une copie de cette banque au format JSON, pour la consulter ou la modifier (facultatif) |
 | `manifest.webmanifest` et `icons/` | Pour installer le site sur l'écran d'accueil du téléphone, comme une appli |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
 
