@@ -198,7 +198,7 @@ details[open] summary::before{content:"▾ "}
 .nt.warn{background:var(--danger-soft);color:var(--danger)}
 .week-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tnum{font-variant-numeric:tabular-nums}
-.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:22px}
+.week{display:grid;grid-template-columns:repeat(var(--cols,7),minmax(0,1fr));max-width:calc(var(--cols,7) * 180px);gap:8px;margin-bottom:22px}
 .mday{display:flex;flex-direction:column;gap:6px;min-width:0}
 .mday-h{display:flex;align-items:baseline;gap:6px;padding:2px 4px;font-size:.8rem;color:var(--muted)}
 .mday-h b{font-family:var(--font-display);font-size:1.15rem;color:var(--fg)}
@@ -228,7 +228,7 @@ details[open] summary::before{content:"▾ "}
 .today-meals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .today-meals div{background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;min-width:0}
 @media (max-width:900px){
-  .week{grid-template-columns:minmax(0,1fr);gap:6px}
+  .week{grid-template-columns:minmax(0,1fr);gap:6px;max-width:none}
   .mday{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:stretch}
   .mday-h{flex-direction:column;align-items:center;justify-content:center;gap:0;background:var(--surface-2);border-radius:var(--r-sm)}
   .mday.today .mday-h{background:var(--accent);color:var(--accent-fg)}
@@ -978,15 +978,17 @@ function vMenus(){
   const t = today();
   const weeks = [[0,'Cette semaine'],[1,'Semaine prochaine']].map(([off, lbl]) => {
     const days = weekDays(off);
-    const planned = days.reduce((n,d) => n + SLOTS.filter(([s]) => mealOf(d,s)).length, 0);
+    const planned = days.filter(d => off !== 0 || d >= t).reduce((n,d) => n + SLOTS.filter(([s]) => mealOf(d,s)).length, 0);
     const range = F({day:'numeric',month:'short'}).format(parse(days[0])) + ' – ' + F({day:'numeric',month:'short'}).format(parse(days[6]));
     const editHere = state.editMeal && days.includes(state.editMeal.date);
-    return `<div class="week-h"><h2>${lbl} <span class="count" style="font-family:var(--font-body);font-weight:400">${esc(range)}</span></h2><div class="week-acts">${(() => { const a = weekAvg(days); return `<span class="count">${planned}/14 repas prévus${a ? ` · moyenne ${priceTag(Math.round(a))} <span class="tnum">(${numFmt(a)})</span>` : ''}</span>`; })()}
+    // this week: past days are hidden (their meals still count in the week's average and balance)
+    const shown = off === 0 ? days.filter(d => d >= t) : days;
+    return `<div class="week-h"><h2>${lbl} <span class="count" style="font-family:var(--font-body);font-weight:400">${esc(range)}</span></h2><div class="week-acts">${(() => { const a = weekAvg(days); return `<span class="count">${planned}/${(off === 0 ? days.filter(d => d >= t).length : 7) * 2} repas prévus${a ? ` · moyenne ${priceTag(Math.round(a))} <span class="tnum">(${numFmt(a)})</span>` : ''}</span>`; })()}
         ${(() => { const ac = autoCount(days); return `${ac.open ? `<button class="btn sm" data-act="gen-week" data-off="${off}" title="Dîners du lundi au vendredi, midi et soir le week-end">${ac.filled ? 'Compléter au hasard' : 'Générer la semaine'}</button>` : ''}
         ${ac.filled ? (state.confirmDel === 'gen-'+off ? `<button class="btn danger sm" data-act="gen-all" data-off="${off}">Remplacer les ${ac.filled} repas générables ?</button>` : `<button class="btn ghost sm" data-act="gen-askall" data-off="${off}" title="Les midis de la semaine ne sont pas touchés">Tout regénérer</button>`) : ''}`; })()}
         ${planned ? (state.confirmDel === 'clear-'+off ? `<button class="btn danger sm" data-act="week-clear" data-off="${off}">Supprimer les ${planned} repas ?</button>` : `<button class="btn ghost sm" data-act="week-askclear" data-off="${off}">Vider la semaine</button>`) : ''}</div></div>
       ${weekBalance(days)}
-      <div class="week">${days.map(d => { const dt = parse(d);
+      <div class="week" style="--cols:${shown.length}">${shown.map(d => { const dt = parse(d);
         return `<div class="mday ${d===t?'today':''}"><div class="mday-h"><span>${esc(F({weekday:'short'}).format(dt))}</span><b>${dt.getDate()}</b></div>
           ${SLOTS.map(([s,l]) => mealCell(d, s, l)).join('')}</div>`; }).join('')}</div>
       ${editHere ? mealEditor() : ''}`;
@@ -1056,7 +1058,7 @@ function syncShopping(changes){
    are needed, then draw recipes of each price without repeating one. */
 // generated slots: dinner Monday to Friday, lunch and dinner on Saturday and Sunday (day index 0 = Monday)
 const isAutoSlot = (i, s) => i >= 5 || s === 'soir';
-const autoCount = days => { let filled = 0, open = 0; days.forEach((d, i) => SLOTS.forEach(([s]) => { if (isAutoSlot(i, s)) mealOf(d, s) ? filled++ : open++; })); return { filled, open }; };
+const autoCount = days => { let filled = 0, open = 0; const t = today(); days.forEach((d, i) => SLOTS.forEach(([s]) => { if (d >= t && isAutoSlot(i, s)) mealOf(d, s) ? filled++ : open++; })); return { filled, open }; };
 const recipeOf = m => m && m.recipeId ? state.recipes.find(r => r.id === m.recipeId) : null;
 function weekAvg(days){
   const ps = []; days.forEach(d => SLOTS.forEach(([s]) => { const r = recipeOf(mealOf(d, s)); if (r && r.price) ps.push(+r.price); }));
@@ -1149,7 +1151,7 @@ function genWeek(off, replaceAll){
   const copies = [];       // { slot, recipe } : open half of a pair whose other half is already planned
   GEN_GROUPS.forEach(g => {
     const members = g.map(([i, s]) => ({ date:days[i], slot:s, m:mealOf(days[i], s) }));
-    const free = replaceAll ? members : members.filter(x => !x.m);
+    const free = (replaceAll ? members : members.filter(x => !x.m)).filter(x => x.date >= today()); // past days stay as they are
     if (!free.length) return;
     const anchor = replaceAll ? null : members.map(x => recipeOf(x.m)).find(Boolean);
     free.forEach(x => open.add(mealKey(x.date, x.slot)));
@@ -1225,7 +1227,7 @@ function genWeek(off, replaceAll){
 // removes every meal of the week, and their share of the shopping list
 function clearWeek(off){
   const days = weekDays(off);
-  const ms = state.meals.filter(m => days.includes(m.date));
+  const ms = state.meals.filter(m => days.includes(m.date) && m.date >= today()); // past meals are hidden and kept
   const withRecipe = ms.filter(m => m.recipeId);
   if (withRecipe.length) syncShopping(withRecipe.map(m => ({ key:m.id, recipe:null, date:m.date })));
   ms.forEach(m => delDoc('meals', m.id));
