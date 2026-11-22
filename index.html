@@ -191,6 +191,7 @@ details[open] summary::before{content:"▾ "}
 .mini span{background:var(--surface-2);border-radius:999px;padding:2px 10px;font-size:.85rem}
 
 .week-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}
+.shop-tools{display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 16px}
 .week-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.82rem;color:var(--muted);margin:-4px 0 10px}
 .week-sum b{color:var(--fg);font-weight:600;margin-right:4px}
 .nutri{display:flex;flex-wrap:wrap;gap:4px}
@@ -295,6 +296,8 @@ a.chip{text-decoration:none}
   .side .brand,.side .sync,.side .switch-space,.side .side-foot{display:none}
   .mtop .me-cat{width:30px;height:30px;margin-left:-4px}
   .mtop-r{gap:12px}
+  .mtop .brand{white-space:nowrap;font-size:1.05rem}
+  .mtop-r a[href="#choix"]{white-space:nowrap;font-size:.8rem}
   nav{flex-direction:row;justify-content:space-around}
   nav a{flex-direction:column;gap:2px;padding:6px 4px;font-size:.68rem;flex:1;text-align:center;min-width:0}
   nav a.nav-settings{display:none}
@@ -716,6 +719,10 @@ function vCourses(){
   <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Courses</h1></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${checked ? `<button class="btn ghost" data-act="clear-shop">Retirer les articles cochés (${checked})</button>` : ''}
     <a class="btn" href="#en-courses">${icon('courses')} Je fais les courses</a></div></div>
+  <div class="shop-tools">
+    <button class="btn ghost sm" data-act="shop-resync" title="Recalcule les ingrédients des repas prévus à partir d'aujourd'hui">↻ Resynchroniser avec les menus</button>
+    ${state.shopping.length ? (state.confirmDel === 'shop-all' ? `<button class="btn danger sm" data-act="shop-clear-all">Supprimer les ${state.shopping.length} articles ?</button>` : `<button class="btn ghost sm" data-act="shop-ask-clear-all">Vider la liste</button>`) : ''}
+  </div>
   <form class="addform" data-form="shop" autocomplete="off">
     <div class="field grow"><label for="f-shop-name">Article</label><input id="f-shop-name" name="name" type="text" required placeholder="Ex. Tomates"></div>
     <div class="field"><label for="f-shop-qty">Quantité</label><input id="f-shop-qty" name="qty" type="text" placeholder="Ex. 1 kg"></div>
@@ -1286,6 +1293,32 @@ function weekBalance(days){
    Dragging a meal onto a free slot moves it, onto another meal swaps them.
    The shopping list follows: each line's share is re-keyed to the meal's new slot,
    so ticked (bought) items stay ticked. */
+// Rebuilds the menu part of the shopping list from the meals planned from today on:
+// one line per bank ingredient with each meal's share. Hand-added lines are left alone,
+// lines already ticked as bought stay ticked, leftovers of removed meals go away.
+function resyncShopping(){
+  const t = today(), want = new Map();
+  state.meals.filter(m => m.recipeId && m.date >= t).forEach(m => {
+    const r = state.recipes.find(x => x.id === m.recipeId); if (!r) return;
+    (r.items || []).forEach(it => { if (!it.ingId) return;
+      const id = 'ing-' + it.ingId; const w = want.get(id) || { it, sources:{} };
+      w.sources[m.id] = { qty:it.qty || '', unit:it.unit || '' }; want.set(id, w); });
+  });
+  let added = 0, removed = 0, changed = 0;
+  state.shopping.filter(x => x.ingId && !want.has(x.id)).forEach(x => {
+    if (x.qty) { if (Object.keys(x.sources || {}).length) { const { id, ...d } = x; setDoc('shopping', id, { ...d, sources:{} }); changed++; } } // keeps a quantity typed by hand
+    else { delDoc('shopping', x.id); removed++; }
+  });
+  const same = (a, b) => { const ka = Object.keys(a || {}), kb = Object.keys(b || {}); return ka.length === kb.length && ka.every(k => b[k] && String(b[k].qty) === String(a[k].qty) && b[k].unit === a[k].unit); };
+  want.forEach((w, id) => {
+    const ex = state.shopping.find(x => x.id === id), ing = ingById(w.it.ingId);
+    if (ex) { if (!same(ex.sources, w.sources)) { const { id:_, ...d } = ex; setDoc('shopping', id, { ...d, sources:w.sources }); changed++; } }
+    else { setDoc('shopping', id, { name:ing ? ing.name : w.it.name, cat:ing ? (ing.cat || 'Autre') : 'Autre', qty:'', ingId:w.it.ingId, done:false, createdAt:Date.now(), sources:w.sources }); added++; }
+  });
+  const parts = [added && `${added} ajouté${added > 1 ? 's' : ''}`, changed && `${changed} mis à jour`, removed && `${removed} retiré${removed > 1 ? 's' : ''}`].filter(Boolean);
+  toast(parts.length ? `Liste resynchronisée : ${parts.join(', ')}` : 'La liste était déjà à jour avec les menus');
+  render();
+}
 function rekeyShopping(map){
   state.shopping.forEach(s => {
     if (!s.sources) return; const keys = Object.keys(s.sources);
@@ -1853,6 +1886,10 @@ document.addEventListener('click', e => {
   else if (act === 'shop-clear-done') { const n = state.shopping.filter(s => s.done); n.forEach(s => delDoc('shopping', s.id));
     state.shopFinish = false; location.hash = 'courses'; toast(`${n.length} article${n.length > 1 ? 's' : ''} retiré${n.length > 1 ? 's' : ''} de la liste`); }
   else if (act === 'shop-keep') { state.shopFinish = false; location.hash = 'courses'; }
+  else if (act === 'shop-resync') resyncShopping();
+  else if (act === 'shop-ask-clear-all') askConfirm('shop-all');
+  else if (act === 'shop-clear-all') { state.confirmDel = null; const n = state.shopping.length; state.shopping.slice().forEach(x => delDoc('shopping', x.id));
+    toast(`Liste vidée : ${n} article${n > 1 ? 's' : ''} supprimé${n > 1 ? 's' : ''}`); render(); }
   else if (act === 'clear-shop') { const n = state.shopping.filter(s => s.done); n.forEach(s => delDoc('shopping', s.id)); toast(n.length + ' article(s) retiré(s)'); }
   else if (act === 'month') { const d = parse((state.month||curMonth())+'-01'); d.setMonth(d.getMonth() + (+el.dataset.d)); state.month = iso(d).slice(0,7); render(); }
   else if (act === 'ask-settle') askConfirm('settle');
