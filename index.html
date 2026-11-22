@@ -187,6 +187,11 @@ details[open] summary::before{content:"▾ "}
 .mini span{background:var(--surface-2);border-radius:999px;padding:2px 10px;font-size:.85rem}
 
 .week-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}
+.week-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.82rem;color:var(--muted);margin:-4px 0 10px}
+.week-sum b{color:var(--fg);font-weight:600;margin-right:4px}
+.nutri{display:flex;flex-wrap:wrap;gap:4px}
+.nt{font-size:.72rem;border-radius:4px;padding:1px 7px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nt.warn{background:var(--danger-soft);color:var(--danger)}
 .week-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tnum{font-variant-numeric:tabular-nums}
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:22px}
@@ -236,15 +241,13 @@ a.chip{text-decoration:none}
 .pre{white-space:pre-wrap;font-size:.9rem;overflow-wrap:anywhere}
 .flabel{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px}
 .hint{font-size:.85rem;color:var(--muted)}
-.ing-line{display:grid;grid-template-columns:minmax(0,1fr) 110px 150px 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.ing-line{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) minmax(0,1.1fr) 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .ing-line:last-child{border-bottom:0}
 .ing-line select{min-height:34px;padding:4px 8px;font-size:.85rem}
-.ing-name{overflow-wrap:anywhere}
+.ing-name{overflow-wrap:anywhere;grid-column:1/-1;font-weight:500}
 @media (max-width:560px){
   .ing-row{grid-template-columns:minmax(0,1fr) 76px 32px}
   .ing-row select{grid-column:1/3}
-  .ing-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px}
-  .ing-line .ing-name{grid-column:1/-1}
 }
 .nav-short{display:none}
 @media (max-width:760px){ nav a .nav-long{display:none} nav a .nav-short{display:inline} }
@@ -935,14 +938,16 @@ function vMenus(){
     const editHere = state.editMeal && days.includes(state.editMeal.date);
     return `<div class="week-h"><h2>${lbl} <span class="count" style="font-family:var(--font-body);font-weight:400">${esc(range)}</span></h2><div class="week-acts">${(() => { const a = weekAvg(days); return `<span class="count">${planned}/14 repas prévus${a ? ` · moyenne ${priceTag(Math.round(a))} <span class="tnum">(${numFmt(a)})</span>` : ''}</span>`; })()}
         ${(() => { const ac = autoCount(days); return `${ac.open ? `<button class="btn sm" data-act="gen-week" data-off="${off}" title="Dîners du lundi au vendredi, midi et soir le week-end">${ac.filled ? 'Compléter au hasard' : 'Générer la semaine'}</button>` : ''}
-        ${ac.filled ? (state.confirmDel === 'gen-'+off ? `<button class="btn danger sm" data-act="gen-all" data-off="${off}">Remplacer les ${ac.filled} repas générables ?</button>` : `<button class="btn ghost sm" data-act="gen-askall" data-off="${off}" title="Les midis de la semaine ne sont pas touchés">Tout regénérer</button>`) : ''}`; })()}</div></div>
+        ${ac.filled ? (state.confirmDel === 'gen-'+off ? `<button class="btn danger sm" data-act="gen-all" data-off="${off}">Remplacer les ${ac.filled} repas générables ?</button>` : `<button class="btn ghost sm" data-act="gen-askall" data-off="${off}" title="Les midis de la semaine ne sont pas touchés">Tout regénérer</button>`) : ''}`; })()}
+        ${planned ? (state.confirmDel === 'clear-'+off ? `<button class="btn danger sm" data-act="week-clear" data-off="${off}">Supprimer les ${planned} repas ?</button>` : `<button class="btn ghost sm" data-act="week-askclear" data-off="${off}">Vider la semaine</button>`) : ''}</div></div>
+      ${weekBalance(days)}
       <div class="week">${days.map(d => { const dt = parse(d);
         return `<div class="mday ${d===t?'today':''}"><div class="mday-h"><span>${esc(F({weekday:'short'}).format(dt))}</span><b>${dt.getDate()}</b></div>
           ${SLOTS.map(([s,l]) => mealCell(d, s, l)).join('')}</div>`; }).join('')}</div>
       ${editHere ? mealEditor() : ''}`;
   }).join('');
   return `
-  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1><p class="sub">Cliquez sur un repas et choisissez une recette de votre banque : ses ingrédients s’ajoutent tout seuls à la liste de courses. « Générer la semaine » remplit les dîners (le même plat mardi et mercredi, puis jeudi et vendredi, chacun avec une viande ou un poisson différent) et les deux repas du week-end ; les midis en semaine restent à votre choix.</p></div></div>
+  <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1><p class="sub">Cliquez sur un repas et choisissez une recette de votre banque : ses ingrédients s’ajoutent tout seuls à la liste de courses. « Générer la semaine » remplit les dîners (le même plat mardi et mercredi, puis jeudi et vendredi, chacun avec une protéine et une base différentes) et les deux repas du week-end, avec des légumes dans chaque plat ; les midis en semaine restent à votre choix.</p></div></div>
   ${menuTabs('menus')}
   ${weeks}`;
 }
@@ -1002,6 +1007,63 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.f
 // Meals that share one recipe when generated: Monday alone, Tuesday = Wednesday, Thursday = Friday
 // (dinners), then each weekend meal on its own. Entries are [day index, slot].
 const GEN_GROUPS = [[[0,'soir']], [[1,'soir'],[2,'soir']], [[3,'soir'],[4,'soir']], [[5,'midi']], [[5,'soir']], [[6,'midi']], [[6,'soir']]];
+// ---------- nutrition: each ingredient belongs to a food group ----------
+// Default group per bank ingredient; an ingredient's own `group` field (set in Ingrédients) wins,
+// and names give a fallback for ingredients added later.
+const FOOD_GROUPS = [
+  ['viande', 'Viande'], ['poisson', 'Poisson & fruits de mer'], ['oeufs', 'Œufs'], ['legumineuse', 'Légumineuses & tofu'],
+  ['legume', 'Légume'], ['aromate', 'Aromate & herbe'], ['fruit', 'Fruit'], ['laitier', 'Produit laitier'],
+  ['pates', 'Pâtes & nouilles'], ['riz', 'Riz'], ['pdt', 'Pommes de terre'], ['cereale', 'Semoule & céréales'], ['pain', 'Pain & pâte à tarte'],
+  ['epicerie', 'Épicerie & assaisonnement']];
+const GROUP_IDS = {};
+Object.entries({
+  viande:'boeuf-hache boeuf-braiser steak-hache veau lardons jambon saucisse chorizo merguez poulet poulet-entier cuisse-poulet pilons-poulet dinde magret',
+  poisson:'saumon saumon-fume cabillaud thon crevettes moules',
+  oeufs:'oeuf',
+  legumineuse:'pois-chiches haricots-rouges haricots-blancs lentilles-corail lentilles-vertes pois-casses tofu',
+  laitier:'lait beurre creme parmesan mozzarella gruyere yaourt reblochon cheddar feta chevre',
+  legume:'tomate carotte courgette poivron salade champignon epinard poireau avocat concombre aubergine endive haricots-verts potiron navet brocoli chou-fleur chou-vert petits-pois tomates-concassees',
+  aromate:'oignon oignon-rouge ail echalote basilic persil coriandre menthe thym gingembre bouquet-garni citron',
+  fruit:'pomme banane fruits-rouges',
+  pates:'pates pates-completes lasagnes nouilles gnocchis raviolis',
+  riz:'riz riz-complet riz-arborio',
+  pdt:'pomme-de-terre patate-douce',
+  cereale:'semoule quinoa flocons-avoine',
+  pain:'baguette pain-mie pain-burger tortillas pate-pizza pate-brisee pate-feuilletee',
+}).forEach(([g, ids]) => ids.split(' ').forEach(id => GROUP_IDS[id] = g));
+const GROUP_WORDS = [
+  [/poulet|dinde|b(œ|oe)uf|steak|veau|porc|jambon|lardon|saucisse|chorizo|merguez|agneau|canard|magret|bacon/i, 'viande'],
+  [/saumon|cabillaud|thon|poisson|colin|truite|merlu|sardine|maquereau|crevette|moule|calamar|gambas|saint-jacques/i, 'poisson'],
+  [/\b(œ|oe)ufs?\b/i, 'oeufs'], [/lentille|pois chiche|haricots? (rouge|blanc)|tofu|pois cass|flageolet|f[eè]ve/i, 'legumineuse'],
+  [/p[âa]tes?\b|spaghetti|tagliatelle|penne|nouille|gnocchi|ravioli|lasagne|coquillette/i, 'pates'], [/\briz\b/i, 'riz'],
+  [/pomme de terre|patate/i, 'pdt'], [/semoule|quinoa|boulgour|polenta|avoine/i, 'cereale'],
+  [/pain|baguette|tortilla|wrap|p[âa]te (bris|feuillet|à pizza|sabl)/i, 'pain'],
+  [/fromage|lait\b|cr[eè]me|beurre|yaourt|mozzarella|parmesan|gruy[eè]re|emmental|comt[ée]|ch[eè]vre|feta|ricotta/i, 'laitier'],
+  [/oignon|ail\b|[ée]chalote|persil|basilic|coriandre|menthe|thym|ciboulette|gingembre|citron|aneth|romarin/i, 'aromate'],
+  [/pomme\b|banane|poire|fraise|framboise|myrtille|orange|kiwi|ananas|mangue/i, 'fruit'],
+  [/tomate|carotte|courgette|poivron|salade|champignon|[ée]pinard|poireau|avocat|concombre|aubergine|endive|haricots? vert|potiron|courge|navet|brocoli|chou|petits? pois|asperge|betterave|radis|c[ée]leri|fenouil|artichaut|roquette|m[aâ]che/i, 'legume']];
+function groupOf(it){
+  const ing = it && it.ingId ? ingById(it.ingId) : null;
+  if (ing && ing.group) return ing.group;
+  if (it && GROUP_IDS[it.ingId]) return GROUP_IDS[it.ingId];
+  const n = (ing && ing.name) || (it && it.name) || '';
+  const hit = GROUP_WORDS.find(([re]) => re.test(n));
+  return hit ? hit[1] : 'epicerie';
+}
+const BASES = { pates:'Pâtes', riz:'Riz', pdt:'Pommes de terre', cereale:'Céréales', pain:'Pain / pâte' };
+// what a dish brings: its starchy base, its proteins, how many real vegetables
+function profileOf(r){
+  const items = (r && r.items) || [];
+  const groups = items.map(groupOf);
+  const base = groups.find(g => BASES[g]) || '';
+  const fam = proteinsOf(r);
+  const vegProt = [...(groups.includes('oeufs') ? ['œufs'] : []), ...(groups.includes('legumineuse') ? ['légumineuses'] : [])];
+  const veg = new Set(items.filter((it, i) => groups[i] === 'legume').map(it => it.ingId || it.name)).size;
+  return { base, fam, vegProt, kinds:[...fam, ...vegProt], veg, hasProtein:fam.length + vegProt.length > 0,
+           fish:fam.some(f => f === 'poisson' || f === 'fruits de mer') };
+}
+window.foyerDebug = { profileOf:r => profileOf(r) }; // lets tests inspect how a dish is classified
+const proteinLabel = pr => pr.kinds.length ? pr.kinds.join(' + ') : 'sans protéine';
 // Meat and fish families, read from a recipe's ingredients (bank ids first, then the ingredient's name)
 const PROTEIN_IDS = { 'boeuf-hache':['bœuf'], 'boeuf-braiser':['bœuf'], 'steak-hache':['bœuf'], veau:['veau'],
   lardons:['porc'], jambon:['porc'], saucisse:['porc'], chorizo:['porc'], merguez:['agneau'],
@@ -1059,22 +1121,39 @@ function genWeek(off, replaceAll){
   const prices = best.length ? best[Math.floor(Math.random() * best.length)] : units.map(() => 2);
   const used = new Set(); days.forEach(d => SLOTS.forEach(([s]) => { const m = mealOf(d, s); if (m && m.recipeId && !open.has(mealKey(d, s))) used.add(m.recipeId); }));
   copies.forEach(c => used.add(c.recipe.id));
-  // weekday dinners (Mon / Tue-Wed / Thu-Fri) never share a meat or fish family; meatless dishes always fit
+  // Balance rules, from strictest to loosest (a rule is dropped only when no recipe can meet it):
+  //  - every dish brings a protein (meat, fish, eggs, pulses or tofu) and at least one real vegetable;
+  //  - the three weekday dishes (Mon / Tue-Wed / Thu-Fri) differ in protein and in starchy base;
+  //  - over the week, a base (pasta, rice, potatoes…) feeds at most 2 of the generated dishes;
+  //  - preferred: a fish or seafood dish in the week, and dishes with two vegetables or more.
   const weekdayKeys = new Set(GEN_GROUPS.slice(0, 3).flat().map(([i, s]) => mealKey(days[i], s)));
-  const taken = new Set();
-  days.slice(0, 5).forEach(d => { const k = mealKey(d, 'soir'); if (open.has(k)) return; proteinsOf(recipeOf(mealOf(d, 'soir'))).forEach(x => taken.add(x)); });
-  copies.forEach(c => { if (weekdayKeys.has(mealKey(c.slot.date, c.slot.slot))) proteinsOf(c.recipe).forEach(x => taken.add(x)); });
-  const clashes = r => proteinsOf(r).some(x => taken.has(x));
-  const pick = (p, weekday) => {
-    const list = byP[p].length ? byP[p] : pool;
-    const ok = r => !weekday || !clashes(r);
-    const r = list.find(x => !used.has(x.id) && ok(x)) || pool.find(x => !used.has(x.id) && ok(x))
-      || list.find(x => !used.has(x.id)) || list[Math.floor(Math.random() * list.length)];
-    used.add(r.id); if (weekday) proteinsOf(r).forEach(x => taken.add(x));
-    return r;
+  const taken = new Set(), weekdayBases = new Set(), baseCount = {};
+  let hasFish = false;
+  const note = (r, weekday) => { const pr = profileOf(r);
+    if (weekday) { pr.kinds.forEach(x => taken.add(x)); if (pr.base) weekdayBases.add(pr.base); }
+    if (pr.base) baseCount[pr.base] = (baseCount[pr.base] || 0) + 1; if (pr.fish) hasFish = true; };
+  const seen = new Set();
+  days.forEach((d, i) => SLOTS.forEach(([s]) => { const k = mealKey(d, s); if (open.has(k)) return; const r = recipeOf(mealOf(d, s)); if (!r || seen.has(r.id)) return; seen.add(r.id); note(r, i < 5 && s === 'soir'); }));
+  copies.forEach(c => { if (seen.has(c.recipe.id)) return; seen.add(c.recipe.id); note(c.recipe, weekdayKeys.has(mealKey(c.slot.date, c.slot.slot))); });
+  const rules = [
+    (r, wd) => { const pr = profileOf(r); return pr.hasProtein && pr.veg >= 1; },
+    (r, wd) => !wd || (!profileOf(r).kinds.some(x => taken.has(x)) && !weekdayBases.has(profileOf(r).base || '-')),
+    (r) => { const b = profileOf(r).base; return !b || (baseCount[b] || 0) < 2; },
+  ];
+  const score = (r, left) => { const pr = profileOf(r);
+    return Math.random() + (pr.veg >= 2 ? 0.6 : 0) + (!hasFish && pr.fish ? (left <= 2 ? 3 : 0.2) : 0); };
+  const pick = (p, weekday, left) => {
+    const priced = byP[p].length ? byP[p] : pool;
+    // try: price + all rules, any price + all rules, then drop the loosest rules one by one
+    const tries = [[priced, 3], [pool, 3], [priced, 2], [pool, 2], [priced, 1], [pool, 1], [pool, 0]];
+    for (const [list, n] of tries) {
+      const c = list.filter(x => !used.has(x.id) && rules.slice(0, n).every(f => f(x, weekday)));
+      if (c.length) { const r = c.reduce((a, b) => (score(b, left) > score(a, left) ? b : a)); used.add(r.id); note(r, weekday); return r; }
+    }
+    const r = pool[Math.floor(Math.random() * pool.length)]; note(r, weekday); return r;
   };
   const writes = copies.map(c => ({ slot:c.slot, recipe:c.recipe }));
-  units.forEach((u, i) => { const r = pick(prices[i], weekdayKeys.has(mealKey(u.slots[0].date, u.slots[0].slot))); u.slots.forEach(sl => writes.push({ slot:sl, recipe:r })); });
+  units.forEach((u, i) => { const r = pick(prices[i], weekdayKeys.has(mealKey(u.slots[0].date, u.slots[0].slot)), units.length - i); u.slots.forEach(sl => writes.push({ slot:sl, recipe:r })); });
   const changes = writes.map(({ slot:sl, recipe:r }) => {
     const key = mealKey(sl.date, sl.slot); const prev = mealOf(sl.date, sl.slot) || {};
     setDoc('meals', key, { date:sl.date, slot:sl.slot, recipeId:r.id, title:r.title, cook:prev.cook||'', ingredients:'', steps:'', link:'', createdAt:prev.createdAt||Date.now() });
@@ -1083,6 +1162,29 @@ function genWeek(off, replaceAll){
   syncShopping(changes);
   state.editMeal = null; state.confirmDel = null; render();
   toast(`${changes.length} repas générés · moyenne ${'€'.repeat(Math.round(weekAvg(days)) || 2)} · ingrédients ajoutés aux courses`);
+}
+// removes every meal of the week, and their share of the shopping list
+function clearWeek(off){
+  const days = weekDays(off);
+  const ms = state.meals.filter(m => days.includes(m.date));
+  const withRecipe = ms.filter(m => m.recipeId);
+  if (withRecipe.length) syncShopping(withRecipe.map(m => ({ key:m.id, recipe:null, date:m.date })));
+  ms.forEach(m => delDoc('meals', m.id));
+  state.confirmDel = null; state.editMeal = null; render();
+  toast(`${ms.length} repas supprimé${ms.length > 1 ? 's' : ''}${withRecipe.length ? ' · leurs ingrédients sont retirés des courses' : ''}`);
+}
+// one-line summary of the week's balance under its header
+function weekBalance(days){
+  const rs = []; const seen = new Set();
+  days.forEach(d => SLOTS.forEach(([s]) => { const r = recipeOf(mealOf(d, s)); if (r && !seen.has(r.id)) { seen.add(r.id); rs.push(r); } }));
+  if (rs.length < 2) return '';
+  const prs = rs.map(profileOf);
+  const kinds = [...new Set(prs.flatMap(p => p.kinds))];
+  const bases = {}; prs.forEach(p => { if (p.base) bases[p.base] = (bases[p.base] || 0) + 1; });
+  const noVeg = prs.filter(p => !p.veg).length, noProt = prs.filter(p => !p.hasProtein).length;
+  const baseTxt = Object.entries(bases).sort((a, b) => b[1] - a[1]).map(([b, n]) => `${BASES[b].toLowerCase()}${n > 1 ? ' ×' + n : ''}`).join(', ');
+  return `<p class="week-sum"><span><b>Protéines</b> ${kinds.length ? esc(kinds.join(', ')) : '—'}</span><span><b>Bases</b> ${baseTxt || '—'}</span>
+    <span class="${noVeg ? 'late' : ''}"><b>Légumes</b> ${noVeg ? `${noVeg} plat${noVeg > 1 ? 's' : ''} sans légume` : 'dans chaque plat'}</span>${noProt ? `<span class="late">${noProt} plat${noProt > 1 ? 's' : ''} sans protéine</span>` : ''}</p>`;
 }
 function saveMeal(date, slot, d, keepOpen){
   const key = mealKey(date, slot); const prev = mealOf(date, slot) || {};
@@ -1142,6 +1244,7 @@ function vRecettes(){
   ${list.length ? `<div class="rec-grid">${list.map(r => { const n = planned(r.id); return `<article class="card rec-card">
       <div class="rec-top"><h3>${esc(r.title)}</h3>${priceTag(r.price)}</div>
       <div class="meta"><span>${(r.items||[]).length} ingrédient${(r.items||[]).length>1?'s':''}</span>${(r.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}${n?`<span class="rec-tag">Prévue ${n} fois</span>`:''}</div>
+      ${(() => { const pr = profileOf(r); return `<div class="nutri"><span class="nt ${pr.hasProtein ? '' : 'warn'}">${esc(proteinLabel(pr))}</span>${pr.base ? `<span class="nt">${BASES[pr.base]}</span>` : ''}<span class="nt ${pr.veg ? '' : 'warn'}">${pr.veg ? pr.veg + ' légume' + (pr.veg > 1 ? 's' : '') : 'sans légume'}</span></div>`; })()}
       <p class="desc">${esc((r.items||[]).map(ingName).join(', '))}</p>
       <div class="acts"><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
         ${state.confirmDel==='rec-'+r.id ? `<button class="btn danger sm" data-act="rec-del" data-id="${r.id}">Confirmer la suppression</button>` : `<button class="btn ghost sm" data-act="askdel" data-id="rec-${r.id}">Supprimer</button>`}</div>
@@ -1156,12 +1259,13 @@ function vIngredients(){
   const groups = {}; list.forEach(i => (groups[i.cat||'Autre'] ||= []).push(i));
   const cats = SHOP_CATS.filter(c => groups[c]).concat(Object.keys(groups).filter(c => !SHOP_CATS.includes(c)));
   return `
-  <div class="head"><div><p class="eyebrow">Menus</p><h1>Banque d’ingrédients</h1><p class="sub">Chaque ingrédient connaît son rayon : il arrive au bon endroit dans la liste de courses.</p></div></div>
+  <div class="head"><div><p class="eyebrow">Menus</p><h1>Banque d’ingrédients</h1><p class="sub">Chaque ingrédient connaît son rayon, pour arriver au bon endroit dans la liste de courses, et sa catégorie (viande, légume, féculent…), qui sert à composer des semaines équilibrées.</p></div></div>
   ${menuTabs('ingredients')}
   <form class="addform" data-form="ingredient" autocomplete="off">
     <div class="field grow"><label for="f-ing-name">Ingrédient</label><input id="f-ing-name" name="name" type="text" required placeholder="Ex. Lait de coco"></div>
     <div class="field"><label for="f-ing-cat">Rayon</label><select id="f-ing-cat" name="cat">${SHOP_CATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
     <div class="field"><label for="f-ing-unit">Unité habituelle</label><select id="f-ing-unit" name="unit">${UNITS.map(u=>`<option>${u}</option>`).join('')}</select></div>
+    <div class="field"><label for="f-ing-group">Catégorie</label><select id="f-ing-group" name="group"><option value="">Automatique (selon le nom)</option>${FOOD_GROUPS.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
     <button class="btn" type="submit">Ajouter</button>
   </form>
   <div class="chips"><input id="f-iq" type="text" placeholder="Chercher un ingrédient" value="${esc(state.ingQuery||'')}" style="flex:1 1 240px;width:auto" aria-label="Chercher un ingrédient"><span class="count">${state.ingredients.length} ingrédients</span></div>
@@ -1169,6 +1273,7 @@ function vIngredients(){
     ${groups[c].sort((x,y)=>(x.name||'').localeCompare(y.name||'','fr')).map(i => { const n = uses(i.id); return `<div class="ing-line">
       <span class="ing-name">${esc(i.name)}${n?` <span class="meta" style="display:inline">· ${n} recette${n>1?'s':''}</span>`:''}</span>
       <select data-act="ing-unit" data-id="${i.id}" aria-label="Unité de ${esc(i.name)}">${UNITS.map(u=>`<option ${u===i.unit?'selected':''}>${u}</option>`).join('')}</select>
+      <select data-act="ing-group" data-id="${i.id}" aria-label="Catégorie de ${esc(i.name)}">${FOOD_GROUPS.map(([k,l])=>`<option value="${k}" ${k===groupOf({ ingId:i.id, name:i.name })?'selected':''}>${l}</option>`).join('')}</select>
       <select data-act="ing-cat" data-id="${i.id}" aria-label="Rayon de ${esc(i.name)}">${SHOP_CATS.map(x=>`<option ${x===(i.cat||'Autre')?'selected':''}>${x}</option>`).join('')}</select>
       ${state.confirmDel==='ing-'+i.id ? `<button class="icon-btn" style="color:var(--danger)" data-act="ing-del" data-id="${i.id}" aria-label="Confirmer la suppression">✓</button>` : `<button class="icon-btn" data-act="${n?'askdel':'ing-del'}" data-id="${n?'ing-'+i.id:i.id}" aria-label="Supprimer ${esc(i.name)}">×</button>`}
     </div>`; }).join('')}</section>`).join('')}</div>`
@@ -1455,7 +1560,7 @@ const FORMS = {
   meal(d, f){ saveMeal(f.dataset.date, f.dataset.slot, d, false); },
   ingredient(d){ const name = d.name.trim(); if (!name) return;
     if (ingByName(name)) { toast(`« ${name} » est déjà dans la banque.`); return; }
-    return addDoc('ingredients', { name, cat:d.cat, unit:d.unit }); },
+    return addDoc('ingredients', { name, cat:d.cat, unit:d.unit, ...(d.group ? { group:d.group } : {}) }); },
   recipe(){ const dr = state.recipeDraft; if (!dr) return;
     const title = dr.title.trim(); if (!title) { toast('Donnez un nom à la recette.'); return; }
     const made = {}; const items = [];
@@ -1528,6 +1633,7 @@ document.addEventListener('change', e => {
     } else { state.editMeal.recipeId = el.value; render(); }
     return;
   }
+  if (act === 'ing-group') { updDoc('ingredients', id, { group:el.value }); return; }
   if (act === 'ing-unit') { updDoc('ingredients', id, { unit:el.value }); return; }
   if (act === 'ing-cat') { updDoc('ingredients', id, { cat:el.value });
     state.shopping.filter(s => s.ingId === id && !s.done).forEach(s => updDoc('shopping', s.id, { cat:el.value })); return; }
@@ -1586,6 +1692,8 @@ document.addEventListener('click', e => {
   else if (act === 'room-off') { devOf(id).filter(d => isLamp(d) && d.on).forEach(d => updDoc('devices', d.id, { on:false })); }
   else if (act === 'dev-del') delDoc('devices', id);
   else if (act === 'room-del') { state.confirmDel = null; devOf(id).forEach(d => delDoc('devices', d.id)); delDoc('rooms', id); toast('Pièce supprimée'); }
+  else if (act === 'week-askclear') askConfirm('clear-' + el.dataset.off);
+  else if (act === 'week-clear') clearWeek(+el.dataset.off);
   else if (act === 'gen-week') genWeek(+el.dataset.off, false);
   else if (act === 'gen-askall') askConfirm('gen-' + el.dataset.off);
   else if (act === 'gen-all') genWeek(+el.dataset.off, true);
