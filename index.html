@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#2D6A4F">
 <meta name="description" content="Foyer à deux : tâches, courses, menus, budget, agenda et projets du couple, et Ma Maison pour la domotique.">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Foyer à deux">
 <script src="firebase-config.js"></script>
@@ -1545,6 +1545,7 @@ window.addEventListener('hashchange', () => { state.confirmDel = null; render();
    and keeps every collection in Cloud Firestore. The compat SDK has the same collection / doc /
    onSnapshot shape as the claude.ai store, so connect() below serves both. */
 const FB_VERSION = '10.12.2';
+let usingFirebase = false; // set once the Firebase store is in use (see listen() below)
 const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); });
 const LOGIN_ERRORS = {
   'auth/invalid-credential':'E-mail ou mot de passe incorrect.', 'auth/wrong-password':'E-mail ou mot de passe incorrect.',
@@ -1559,6 +1560,7 @@ async function startFirebase(){
   catch { await startLocal(); toast('Le serveur en ligne ne répond pas : données de cet appareil uniquement.'); return; }
   if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
   const fs = firebase.firestore();
+  usingFirebase = true;
   try { fs.settings({ ignoreUndefinedProperties:true, merge:true }); } catch {}
   try { await fs.enablePersistence({ synchronizeTabs:true }); } catch {} // offline copy for the store with no signal
   let started = false;
@@ -1611,15 +1613,18 @@ render();
   if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) return startFirebase();
   startLocal();
 })();
+// Firestore only reports "now confirmed by the server" when asked for metadata changes;
+// without it a listener whose data matches the offline copy never leaves the loading state.
+const listen = (ref, next, err) => usingFirebase ? ref.onSnapshot({ includeMetadataChanges:true }, next, err) : ref.onSnapshot(next, err);
 function connect(d){
   db = d;
   const pending = new Set([...COLS, 'config', 'maison']);
   const timer = setTimeout(() => { if (pending.size && state.mode === 'loading') { state.mode = 'stale'; scheduleRender(); } }, 10000);
   const settle = (k, snap) => { if (!snap.metadata.fromCache && pending.delete(k) && !pending.size) { clearTimeout(timer); if (state.mode !== 'error') state.mode = 'shared'; } };
   const onErr = k => () => { pending.delete(k); clearTimeout(timer); state.mode = 'error'; scheduleRender(); };
-  COLS.forEach(c => db.collection(c).onSnapshot(s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
-  db.doc('config/couple').onSnapshot(s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
-  db.doc('config/maison').onSnapshot(s => { if (s.exists) state.maisonCfg = { steps:{}, ...s.data() }; settle('maison', s); scheduleRender(); }, onErr('maison'));
+  COLS.forEach(c => listen(db.collection(c), s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
+  listen(db.doc('config/couple'), s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
+  listen(db.doc('config/maison'), s => { if (s.exists) state.maisonCfg = { steps:{}, ...s.data() }; settle('maison', s); scheduleRender(); }, onErr('maison'));
 }
 })();
 </script>
