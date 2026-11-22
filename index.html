@@ -199,6 +199,10 @@ details[open] summary::before{content:"▾ "}
 #update-banner{position:fixed;left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 32px));justify-content:space-between;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:70;display:flex;align-items:center;gap:12px;
   background:var(--fg);color:var(--bg);border-radius:var(--r);padding:8px 8px 8px 14px;font-size:.88rem;box-shadow:0 10px 30px rgb(0 0 0 / .25);max-width:calc(100% - 32px)}
 #update-banner .btn{background:var(--accent);color:var(--accent-fg);flex:none}
+.timer-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none;align-self:center}
+.timer-btn:hover{color:var(--fg);border-color:var(--accent)}
+.timer-btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.timer-n{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--fg);color:var(--bg);font-size:.68rem;font-weight:700;display:grid;place-items:center;padding:0 4px;font-variant-numeric:tabular-nums}
 .rec-badge{font-size:.72rem;color:var(--accent);font-weight:600;white-space:nowrap}
 .recur summary{color:var(--fg);display:flex;justify-content:space-between;align-items:baseline;gap:10px;cursor:pointer;list-style:none}
 .recur summary::-webkit-details-marker{display:none}
@@ -826,8 +830,9 @@ function vRecurring(){
   const list = state.recurring.slice().sort((a, b) => a.day - b.day || (a.label || '').localeCompare(b.label || '', 'fr'));
   const monthly = list.filter(r => r.active).reduce((s, r) => s + (+r.amount || 0), 0);
   const splitLbl = r => r.split === 'a' ? 'pour ' + who('a') : r.split === 'b' ? 'pour ' + who('b') : 'partagée 50/50';
-  return `<details class="card recur" style="margin-top:16px" ${(state.recurOpen ?? !list.length) ? 'open' : ''}>
-    <summary><h2>Dépenses récurrentes</h2><span class="count">${list.length ? `${list.filter(r => r.active).length} active${list.filter(r => r.active).length > 1 ? 's' : ''} · ${money(monthly)} / mois` : 'loyer, abonnements…'}</span></summary>
+  if (!state.recurOpen) return '';
+  return `<section class="card recur" style="margin-top:16px" id="recur-card">
+    <div class="card-h" style="margin:0"><h2>Dépenses récurrentes</h2><div style="display:flex;align-items:center;gap:6px"><span class="count">${list.length ? `${list.filter(r => r.active).length} active${list.filter(r => r.active).length > 1 ? 's' : ''} · ${money(monthly)} / mois` : 'loyer, abonnements…'}</span><button class="icon-btn" data-act="recur-toggle" aria-label="Masquer les dépenses récurrentes">×</button></div></div>
     ${list.length ? `<ul class="list" style="margin-top:8px">${list.map(r => `<li class="row ${r.active ? '' : 'off'}">
         <div class="row-main"><span class="row-title">${esc(r.label)}</span><span class="meta"><span>le ${r.day} du mois</span><span>${esc(r.cat || '')}</span><span>payée par</span>${pill(r.payer)}<span>${splitLbl(r)}</span>${r.lastDone ? `<span>dernière : ${esc(fmtMonth(r.lastDone))}</span>` : ''}</span></div>
         <span class="amount">${money(+r.amount)}</span>
@@ -842,7 +847,7 @@ function vRecurring(){
       <div class="field"><label for="f-rc-cat">Catégorie</label><select id="f-rc-cat" name="cat">${EXP_CATS.map(c => `<option ${c === 'Logement' ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
       <button class="btn" type="submit">Ajouter</button>
     </form>
-  </details>`;
+  </section>`;
 }
 function vBudget(){
   const m = state.month || curMonth();
@@ -858,7 +863,8 @@ function vBudget(){
   const pa = total ? Math.round(paidA/total*100) : 50;
   const splitLbl = e => e.cat === 'Remboursement' ? 'Remboursement' : e.split==='a' ? 'Pour '+who('a') : e.split==='b' ? 'Pour '+who('b') : 'Partagé 50/50';
   return `
-  <div class="head"><div><p class="eyebrow">Argent du couple</p><h1>Budget</h1></div></div>
+  <div class="head"><div><p class="eyebrow">Argent du couple</p><h1>Budget</h1></div>
+    <button class="timer-btn ${state.recurOpen ? 'on' : ''}" data-act="recur-toggle" aria-pressed="${!!state.recurOpen}" aria-label="Dépenses récurrentes" title="Dépenses récurrentes"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="11" r="6.5"/><path d="M10 7.5V11l2.3 1.6M8 2.5h4M15.2 5.2l1.3-1.3"/></svg>${state.recurring.filter(r => r.active).length ? `<span class="timer-n">${state.recurring.filter(r => r.active).length}</span>` : ''}</button></div>
   <section class="card balance">
     <div><p class="eyebrow">Équilibre des comptes</p><p class="balance-big">${b.txt}</p></div>
     ${b.even ? '' : (state.confirmDel==='settle' ? `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="settle">Confirmer le remboursement de ${money(b.amt)}</button><button class="btn ghost" data-act="cancel">Annuler</button></div>`
@@ -2038,6 +2044,8 @@ document.addEventListener('click', e => {
   else if (act === 'shop-ask-clear-all') askConfirm('shop-all');
   else if (act === 'shop-clear-all') { state.confirmDel = null; const n = state.shopping.length; state.shopping.slice().forEach(x => delDoc('shopping', x.id));
     toast(`Liste vidée : ${n} article${n > 1 ? 's' : ''} supprimé${n > 1 ? 's' : ''}`); render(); }
+  else if (act === 'recur-toggle') { state.recurOpen = !state.recurOpen; render();
+    if (state.recurOpen) { const c = document.getElementById('recur-card'); if (c) c.scrollIntoView({ block:'nearest', behavior:'smooth' }); } }
   else if (act === 'rec-toggle') { const x = state.recurring.find(r => r.id === id); if (x) updDoc('recurring', id, { active:!x.active }); }
   else if (act === 'rec-ask-del') askConfirm('recur-' + id);
   else if (act === 'rec-del-ok') { state.confirmDel = null; delDoc('recurring', id); toast('Dépense récurrente supprimée (les mois déjà ajoutés restent dans le budget)'); }
@@ -2113,9 +2121,6 @@ document.addEventListener('click', e => {
 document.addEventListener('toggle', e => {
   const d = e.target; if (!d.dataset || !d.dataset.pid) return;
   d.open ? state.openProj.add(d.dataset.pid) : state.openProj.delete(d.dataset.pid);
-}, true);
-document.addEventListener('toggle', e => { // the recurring card stays as the person left it
-  if (e.target.classList && e.target.classList.contains('recur')) state.recurOpen = e.target.open;
 }, true);
 window.addEventListener('hashchange', () => { state.confirmDel = null; state.mealEdit = false; render(); });
 
@@ -2264,7 +2269,7 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795359823';
+const APP_BUILD = '1795359939';
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
