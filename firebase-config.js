@@ -10,3 +10,7 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "646325751496",
   appId: "1:646325751496:web:88edd243f6f41c0e5c1ffd"
 };
+
+// Notifications : clé publique « Web Push » (Paramètres du projet → Cloud Messaging → Certificats Web Push).
+// Tant qu'elle vaut null, le bouton « Activer les notifications » explique qu'il manque cette clé.
+window.FIREBASE_VAPID_KEY = "BAARYQ0WgYJiRaRZJWlxvB6QgDh_BejqSaIAI0BJb-c08sZ-yYe5pc4k3ktXjn6N31sdz5hLGV5aSiUgST7kAng";

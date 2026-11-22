@@ -424,7 +424,7 @@ body[data-space="maison"] nav a[aria-current="page"] svg{color:var(--lamp)}
 const COLS = ['tasks','shopping','expenses','events','projects','meals','recipes','ingredients','rooms','devices'];
 const DEFAULT_CFG = { a:'Partenaire A', b:'Partenaire B' };
 const state = { tasks:[], shopping:[], expenses:[], events:[], projects:[], meals:[], recipes:[], ingredients:[], rooms:[], devices:[], maisonCfg:{ steps:{} }, config:{...DEFAULT_CFG}, editMeal:null,
-  recipeDraft:null, recipeQuery:'', ingQuery:'', shopFinish:false, shopPay:{ payer:null }, shopPaid:null, user:null, loginError:'', loginBusy:false,
+  recipeDraft:null, recipeQuery:'', ingQuery:'', shopFinish:false, shopPay:{ payer:null }, shopPaid:null, user:null, loginError:'', loginBusy:false, prefs:{ me:null, mute:{} }, pushBusy:false,
   mode:'loading', taskWho:'all', showDone:false, month:null, openProj:new Set(), confirmDel:null };
 let db = null;
 
@@ -780,6 +780,77 @@ function vProjets(){
     <div class="col">${list.length ? list.map(projCard).join('') : `<div class="col-empty">${k==='idee'?'Notez ici vos envies, même vagues.':k==='encours'?'Changez le statut d’une idée pour la démarrer.':'Les projets terminés s’afficheront ici.'}</div>`}</div></div>`).join('')}</div>`;
 }
 
+/* ---------- notifications (Firebase build) ----------
+   Notable actions write an "activity" document; the notifyPartner Cloud Function
+   (server folder) sends a push to the partner's devices. Each person keeps their
+   preferences in prefs/<email>: who they are (a / b) and which types they mute. */
+const NOTIF_TYPES = [['taches', 'Nouvelles tâches'], ['agenda', 'Nouveaux rendez-vous'], ['depenses', 'Dépenses et remboursements'], ['projets', 'Nouveaux projets'], ['courses', 'Courses terminées']];
+const PUSH_KEY = 'foyer-a-deux-push-token';
+const actorName = () => (state.prefs.me === 'a' || state.prefs.me === 'b') ? who(state.prefs.me) : (state.user || '').split('@')[0];
+function logActivity(type, verb, body, route){
+  if (!usingFirebase || !state.user || !db) return;
+  db.collection('activity').add({ type, title:`${actorName()} ${verb}`, body:body || '', route:route || '', by:state.user, at:Date.now() }).catch(() => {});
+}
+function logShopping(total){
+  const n = state.shopping.filter(s => s.done).length;
+  logActivity('courses', 'a fait les courses', `${n} article${n > 1 ? 's' : ''} dans le panier${total ? ' · ' + total : ''}`, 'courses');
+}
+function setPrefs(p){ state.prefs = p; render(); if (db && state.user) db.doc('prefs/' + state.user).set(p).catch(fail); }
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushToken = () => { try { return localStorage.getItem(PUSH_KEY) || ''; } catch { return ''; } };
+async function pushRegistration(){
+  if (!firebase.messaging) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-messaging-compat.js`);
+  const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+  const messaging = firebase.messaging();
+  const token = await messaging.getToken({ vapidKey:window.FIREBASE_VAPID_KEY, serviceWorkerRegistration:reg });
+  if (!token) throw new Error('no-token');
+  const old = pushToken();
+  if (old && old !== token) db.collection('pushTokens').doc(old).delete().catch(() => {});
+  await db.collection('pushTokens').doc(token).set({ email:state.user, at:Date.now(), device:navigator.userAgent.slice(0, 120) });
+  try { localStorage.setItem(PUSH_KEY, token); } catch {}
+  if (!pushRegistration.listening) { pushRegistration.listening = true; messaging.onMessage(m => { const n = m.notification || {}; toast(`${n.title || ''}${n.body ? ' · ' + n.body : ''}`); }); }
+  return token;
+}
+async function enablePush(){
+  if (!window.FIREBASE_VAPID_KEY) { toast('Les notifications ne sont pas encore configurées : il manque la clé Web Push (voir NOTIFICATIONS.md).'); return; }
+  if (isIOS() && !isStandalone()) { toast('Sur iPhone, ajoutez d’abord l’appli à l’écran d’accueil, puis ouvrez-la depuis son icône.'); return; }
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) { toast('Ce navigateur ne gère pas les notifications.'); return; }
+  const perm = await Notification.requestPermission(); // first await: iOS only asks from a tap
+  if (perm !== 'granted') { toast('Notifications refusées. Vous pouvez les autoriser dans les réglages du téléphone.'); render(); return; }
+  state.pushBusy = true; render();
+  try { await pushRegistration(); toast('Notifications activées sur cet appareil'); }
+  catch (e) { toast('Impossible d’activer les notifications. Réessayez dans un instant.'); }
+  state.pushBusy = false; render();
+}
+async function disablePush(){
+  const t = pushToken();
+  if (t) { await db.collection('pushTokens').doc(t).delete().catch(() => {}); try { localStorage.removeItem(PUSH_KEY); } catch {} }
+  toast('Notifications désactivées sur cet appareil'); render();
+}
+// on each start: refresh this device's token if notifications were turned on here
+function resumePush(){
+  if (!pushToken() || !window.FIREBASE_VAPID_KEY || !('Notification' in window) || Notification.permission !== 'granted') return;
+  pushRegistration().catch(() => {});
+}
+function vNotifCard(){
+  const on = !!pushToken() && 'Notification' in window && Notification.permission === 'granted';
+  const mute = state.prefs.mute || {};
+  const meChip = k => `<button class="chip" data-act="pref-me" data-v="${k}" aria-pressed="${state.prefs.me === k}">${esc(who(k))}</button>`;
+  let status;
+  if (!window.FIREBASE_VAPID_KEY) status = '<p class="hint">Pas encore configurées : il manque la clé Web Push dans firebase-config.js (voir NOTIFICATIONS.md).</p>';
+  else if (isIOS() && !isStandalone()) status = '<p class="hint">Sur iPhone, les notifications ne marchent que depuis l’icône de l’écran d’accueil : Partager, puis « Sur l’écran d’accueil », puis ouvrez l’appli depuis cette icône.</p>';
+  else if (on) status = `<p class="paid-line">${CHECK}<span>Activées sur cet appareil</span></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="push-test">Envoyer une notification de test</button><button class="btn ghost sm" data-act="push-off">Désactiver sur cet appareil</button></div>`;
+  else status = `<button class="btn" data-act="push-on" ${state.pushBusy ? 'disabled' : ''}>${state.pushBusy ? 'Activation…' : 'Activer les notifications sur cet appareil'}</button>`;
+  return `<section class="card" style="display:flex;flex-direction:column;gap:12px">
+    <h2>Notifications</h2>
+    <p class="sub">Recevez une notification quand votre partenaire ajoute une tâche, un rendez-vous, une dépense, un projet, ou fait les courses.</p>
+    <div><p class="flabel">Sur ce compte, vous êtes</p><div class="chips" style="margin:0">${meChip('a')}${meChip('b')}</div></div>
+    ${status}
+    <div><p class="flabel">Me prévenir pour</p><ul class="steps-list">${NOTIF_TYPES.map(([k, l]) => `<li><label><input type="checkbox" class="chk" data-act="pref-mute" data-k="${k}" ${mute[k] ? '' : 'checked'}><span>${l}</span></label></li>`).join('')}</ul></div>
+  </section>`;
+}
 function vReglages(){
   const exCount = COLS.reduce((n,c)=>n+state[c].filter(x=>x.example).length,0);
   const modeTxt = state.mode==='local' ? "Les données sont enregistrées dans ce navigateur uniquement : elles ne sont pas partagées avec votre partenaire."
@@ -796,6 +867,7 @@ function vReglages(){
       </div>
       <div><button class="btn" type="submit">Enregistrer</button></div>
     </form>
+    ${usingFirebase && state.user ? vNotifCard() : ''}
     <section class="card"><h2>Synchronisation</h2><p class="sub" style="margin-top:6px">${modeTxt}</p>
       ${state.user ? '<button class="btn ghost" data-act="logout" style="margin-top:12px">Se déconnecter</button>' : ''}</section>
     ${exCount ? `<section class="card"><h2>Exemples</h2><p class="sub" style="margin:6px 0 12px">${exCount} élément${exCount>1?'s':''} marqué${exCount>1?'s':''} « exemple » ont été ajoutés pour vous montrer l’outil.</p>
@@ -1336,7 +1408,8 @@ function render(structural){
 
 /* ---------- events ---------- */
 const FORMS = {
-  task(d){ return addDoc('tasks', { title:d.title.trim(), who:d.who, due:d.due||'', rec:d.rec||'none', done:false }); },
+  task(d){ logActivity('taches', 'a ajouté une tâche', d.title.trim() + (d.who === 'a' || d.who === 'b' ? ' · pour ' + who(d.who) : '') + (d.due ? ' · ' + rel(d.due) : ''), 'taches');
+    return addDoc('tasks', { title:d.title.trim(), who:d.who, due:d.due||'', rec:d.rec||'none', done:false }); },
   shop(d){ return addDoc('shopping', { name:d.name.trim(), qty:(d.qty||'').trim(), cat:d.cat, done:false }); },
   login(d){
     state.loginBusy = true; state.loginError = ''; render();
@@ -1362,6 +1435,7 @@ const FORMS = {
       state.shopPaid = `${money(total)} enregistrés, payés par ${who === 'a' ? state.config.a : state.config.b}`;
     }
     parts.forEach(([payer, amount]) => addDoc('expenses', { ...base, payer, amount }));
+    logShopping(money(total));
     state.shopFinish = 'done'; render(true);
     toast(`Dépense de ${money(total)} ajoutée au budget`);
   },
@@ -1370,9 +1444,12 @@ const FORMS = {
     toast(`« ${name} » ajouté${ing ? ' · ' + (ing.cat || 'Autre') : ''}`);
     return addDoc('shopping', { name:ing ? ing.name : name, qty:'', cat:ing ? (ing.cat || 'Autre') : 'Autre', done:false }); },
   expense(d){ const amt = Math.round(parseFloat(String(d.amount).replace(',','.'))*100)/100; if (!(amt>0)) { toast('Indiquez un montant supérieur à 0.'); return; }
+    logActivity('depenses', 'a ajouté une dépense', `${d.label.trim()} · ${money(amt)} payés par ${who(d.payer)}`, 'budget');
     return addDoc('expenses', { label:d.label.trim(), amount:amt, payer:d.payer, split:d.split, cat:d.cat, date:d.date||today() }); },
-  event(d){ return addDoc('events', { title:d.title.trim(), date:d.date, time:d.time||'', who:d.who, place:(d.place||'').trim() }); },
-  project(d){ return addDoc('projects', { title:d.title.trim(), desc:(d.desc||'').trim(), deadline:d.deadline||'', budget:d.budget?+d.budget:0, status:'idee', steps:[] }); },
+  event(d){ logActivity('agenda', 'a ajouté un rendez-vous', `${d.title.trim()} · ${fmtDay(d.date)}${d.time ? ' à ' + d.time : ''}`, 'agenda');
+    return addDoc('events', { title:d.title.trim(), date:d.date, time:d.time||'', who:d.who, place:(d.place||'').trim() }); },
+  project(d){ logActivity('projets', 'a créé un projet', d.title.trim(), 'projets');
+    return addDoc('projects', { title:d.title.trim(), desc:(d.desc||'').trim(), deadline:d.deadline||'', budget:d.budget?+d.budget:0, status:'idee', steps:[] }); },
   step(d, f){ const p = state.projects.find(x => x.id === f.dataset.id); if (!p) return; state.openProj.add(p.id);
     return updDoc('projects', p.id, { steps:[...(p.steps||[]), { id:uid(), text:d.text.trim(), done:false }] }); },
   meal(d, f){ saveMeal(f.dataset.date, f.dataset.slot, d, false); },
@@ -1441,6 +1518,7 @@ document.addEventListener('change', e => {
   if (el.id === 'f-remember') { if (!el.checked) remember(''); return; }
   if (act === 'bri') { updDoc('devices', id, { bri:+el.value }); return; }
   if (act === 'ent') { updDoc('devices', id, { entity:el.value.trim() }); return; }
+  if (act === 'pref-mute') { setPrefs({ ...state.prefs, mute:{ ...(state.prefs.mute || {}), [el.dataset.k]:!el.checked } }); return; }
   if (act === 'mstep') { const steps = { ...(state.maisonCfg.steps || {}), [el.dataset.k]:el.checked }; setMaisonCfg({ ...state.maisonCfg, steps }); return; }
   if (act === 'meal-rec') {
     const f = el.closest('form');
@@ -1479,7 +1557,7 @@ document.addEventListener('click', e => {
   else if (act === 'pay-who') { state.shopPay.payer = el.dataset.v; render();
     if (el.dataset.v === 'both') { const t = num(document.getElementById('f-pay-total').value), a = document.getElementById('f-pay-a'), b = document.getElementById('f-pay-b');
       if (t > 0 && a && b && !a.value && !b.value) { a.value = (t / 2).toFixed(2); b.value = (t - +a.value).toFixed(2); } } }
-  else if (act === 'shop-skip-pay') { state.shopFinish = 'done'; state.shopPaid = null; render(true); }
+  else if (act === 'shop-skip-pay') { logShopping(''); state.shopFinish = 'done'; state.shopPaid = null; render(true); }
   else if (act === 'shop-resume') { state.shopFinish = false; render(); }
   else if (act === 'shop-clear-done') { const n = state.shopping.filter(s => s.done); n.forEach(s => delDoc('shopping', s.id));
     state.shopFinish = false; location.hash = 'courses'; toast(`${n.length} article${n.length > 1 ? 's' : ''} retiré${n.length > 1 ? 's' : ''} de la liste`); }
@@ -1489,7 +1567,8 @@ document.addEventListener('click', e => {
   else if (act === 'ask-settle') askConfirm('settle');
   else if (act === 'cancel') { state.confirmDel = null; render(); }
   else if (act === 'settle') { const b = balanceText(balance()); state.confirmDel = null;
-    if (!b.even) { addDoc('expenses', { label:`Remboursement de ${who(b.debtor)} à ${who(b.creditor)}`, amount:b.amt, payer:b.debtor, split:b.creditor, cat:'Remboursement', date:today() }); toast('Comptes remis à zéro'); } render(); }
+    if (!b.even) { addDoc('expenses', { label:`Remboursement de ${who(b.debtor)} à ${who(b.creditor)}`, amount:b.amt, payer:b.debtor, split:b.creditor, cat:'Remboursement', date:today() });
+      logActivity('depenses', 'a marqué les comptes comme réglés', `Remboursement de ${money(b.amt)} de ${who(b.debtor)} à ${who(b.creditor)}`, 'budget'); toast('Comptes remis à zéro'); } render(); }
   else if (act === 'askdel') askConfirm(id);
   else if (act === 'delproj') { state.confirmDel = null; delDoc('projects', id); }
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
@@ -1510,6 +1589,10 @@ document.addEventListener('click', e => {
   else if (act === 'gen-week') genWeek(+el.dataset.off, false);
   else if (act === 'gen-askall') askConfirm('gen-' + el.dataset.off);
   else if (act === 'gen-all') genWeek(+el.dataset.off, true);
+  else if (act === 'push-on') enablePush();
+  else if (act === 'push-off') disablePush();
+  else if (act === 'push-test') { logActivity('test', 'vous envoie une notification de test', 'Si vous lisez ceci, les notifications fonctionnent.', 'reglages'); toast('Notification de test envoyée : elle arrive dans quelques secondes.'); }
+  else if (act === 'pref-me') setPrefs({ ...state.prefs, me:el.dataset.v });
   else if (act === 'logout') { firebase.auth().signOut().then(() => location.reload()); }
   else if (act === 'load-seed') { loadSeed().then(n => { render(); toast(n ? `${n} recettes chargées` : 'Impossible de lire la banque de recettes. Rechargez la page depuis l’adresse du site.'); }); }
   else if (act === 'rec-price') { state.recipePrice = +el.dataset.v; render(); }
@@ -1625,6 +1708,10 @@ function connect(d){
   COLS.forEach(c => listen(db.collection(c), s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
   listen(db.doc('config/couple'), s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
   listen(db.doc('config/maison'), s => { if (s.exists) state.maisonCfg = { steps:{}, ...s.data() }; settle('maison', s); scheduleRender(); }, onErr('maison'));
+  if (usingFirebase && state.user) {
+    db.doc('prefs/' + state.user).onSnapshot(s => { state.prefs = { me:null, mute:{}, ...(s.exists ? s.data() : {}) }; scheduleRender(); }, () => {});
+    resumePush();
+  }
 }
 })();
 </script>

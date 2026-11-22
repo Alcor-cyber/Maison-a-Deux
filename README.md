@@ -12,17 +12,18 @@ Le site est une seule page HTML, sans installation ni serveur : GitHub Pages suf
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Le site complet (HTML, CSS et JavaScript), avec la banque de départ intégrée : 149 recettes et 120 ingrédients, chargés à la première visite. Ce fichier suffit à lui seul |
-| `data/seed.json` | Une copie de cette banque au format JSON, pour la consulter ou la modifier (facultatif) |
 | `firebase-config.js` | Les réglages Firebase pour la sauvegarde en ligne (à remplir, voir `FIREBASE.md`) |
-| `firestore.rules` | Les règles qui réservent les données à vos deux comptes |
+| `firestore.rules` | Modèle des règles Firestore (les vraies, avec vos adresses, sont dans la console Firebase) |
+| `firebase-messaging-sw.js` | Reçoit les notifications quand l'appli est fermée |
+| `NOTIFICATIONS.md` | Le guide pour activer les notifications |
 | `FIREBASE.md` | Le guide pas à pas pour activer la sauvegarde en ligne et le partage |
-| `manifest.webmanifest` et `icons/` | Pour installer le site sur l'écran d'accueil du téléphone, comme une appli |
+| `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | Pour installer le site sur l'écran d'accueil du téléphone, comme une appli |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
 
 ## Mise en ligne avec GitHub Pages
 
 1. Sur [github.com](https://github.com), créez un nouveau dépôt (bouton **New**), par exemple `foyer-a-deux`.
-2. Dans le dépôt, cliquez sur **Add file → Upload files** et glissez **tout le contenu de ce dossier** (le fichier `.nojekyll` et les dossiers `data` et `icons` compris), puis **Commit changes**.
+2. Dans le dépôt, cliquez sur **Add file → Upload files** et glissez **tout le contenu de ce dossier** (le fichier `.nojekyll` compris), puis **Commit changes**.
    - Si `.nojekyll` n'apparaît pas (fichier caché), ce n'est pas grave : le site fonctionne sans.
 3. Allez dans **Settings → Pages**. Sous **Build and deployment**, choisissez **Deploy from a branch**, branche **main**, dossier **/ (root)**, puis **Save**.
 4. Après une à deux minutes, le site est en ligne à l'adresse `https://VOTRE-NOM.github.io/foyer-a-deux/`.
