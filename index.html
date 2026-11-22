@@ -382,7 +382,7 @@ body[data-space="choix"] .main{padding-block:0}
 /* ---------- cooking mode ---------- */
 .cook{position:fixed;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;overflow:auto;
   padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-left,0px))}
-.cook-top{display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.cook-top{position:relative;display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
 .cook-title{flex:1;min-width:0;display:flex;flex-direction:column}
 .cook-title b{font-family:var(--font-display);font-size:1.05rem;overflow-wrap:anywhere}
 .cook-title span{font-size:.8rem;color:var(--muted)}
@@ -410,6 +410,67 @@ body[data-space="choix"] .main{padding-block:0}
 .cook-btn{align-self:flex-start}
 .btn.amber{background:var(--pb);color:var(--surface)}
 .btn.blue{background:var(--pa);color:var(--surface)}
+/* ---------- living cats ---------- */
+.ear{transform-box:fill-box;transform-origin:50% 100%}
+.eyes-blink{opacity:0}
+.cat-live .eyes-blink{animation:blink-c 5.2s infinite}
+.cat-live .eyes-open{animation:blink-o 5.2s infinite}
+.cat-live .ear-l{animation:twitch 7s infinite}
+.cat-live .ear-r{animation:twitch 11s 2s infinite}
+@keyframes blink-o{0%,94%,100%{opacity:1}95.5%,98%{opacity:0}}
+@keyframes blink-c{0%,94%,100%{opacity:0}95.5%,98%{opacity:1}}
+@keyframes twitch{0%,90%,100%{transform:rotate(0)}92%{transform:rotate(-14deg)}94%{transform:rotate(6deg)}96%{transform:rotate(-8deg)}}
+.cat-live .ear-r{animation-name:twitch-r}
+@keyframes twitch-r{0%,90%,100%{transform:rotate(0)}92%{transform:rotate(14deg)}94%{transform:rotate(-6deg)}96%{transform:rotate(8deg)}}
+.me-cat{cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.me-cat.purr svg{animation:purr .08s linear 14 alternate}
+@keyframes purr{from{transform:translate(-.8px,.4px) rotate(-2deg)}to{transform:translate(.8px,-.4px) rotate(2deg)}}
+.me-cat.purr::after{content:"rrr…";position:absolute;left:100%;top:-6px;font-size:.7rem;font-weight:600;color:var(--muted);white-space:nowrap;animation:rrr 1.2s ease-out forwards;pointer-events:none}
+.mtop .me-cat.purr::after{left:auto;right:calc(100% + 2px);top:8px}
+@keyframes rrr{from{opacity:0;transform:translateY(4px)}30%{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+.cat-scene{position:fixed;inset:0;z-index:80;pointer-events:none;overflow:hidden}
+.walker{position:absolute;left:0;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);width:180px;animation:walk 3.4s linear forwards}
+.walker svg{width:100%;height:auto;animation:bob .34s ease-in-out infinite alternate}
+@keyframes walk{from{transform:translateX(-170px)}to{transform:translateX(calc(100vw + 20px))}}
+@keyframes bob{to{transform:translateY(-4px)}}
+.walker .leg{transform-box:fill-box;transform-origin:50% 0;animation:step .34s ease-in-out infinite alternate}
+.walker .b2,.walker .f1{animation-direction:alternate-reverse}
+@keyframes step{from{transform:rotate(22deg)}to{transform:rotate(-22deg)}}
+.walker .tail{transform-box:fill-box;transform-origin:100% 100%;animation:wag .5s ease-in-out infinite alternate}
+@keyframes wag{from{transform:rotate(-8deg)}to{transform:rotate(10deg)}}
+.party{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);transform:translateX(-50%);display:flex;gap:8px;align-items:flex-end;animation:party-io 3.3s ease both}
+@keyframes party-io{0%{opacity:0;transform:translate(-50%,40px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,30px)}}
+.party-msg{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin:0 0 10px;background:var(--fg);color:var(--bg);padding:6px 14px;border-radius:999px;font-weight:700;white-space:nowrap;font-family:var(--font-display)}
+.jumper{width:104px}
+.jumper svg{width:100%;height:auto;display:block;transform-origin:50% 100%;animation:jump .9s cubic-bezier(.3,.7,.4,1) .3s 3}
+.j2 svg{animation-delay:.48s}
+@keyframes jump{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(0) scale(1.12,.88)}45%{transform:translateY(-80px) scale(.94,1.07)}75%{transform:translateY(0) scale(1.1,.9)}88%{transform:translateY(0) scale(.98,1.02)}}
+.confetti i{position:absolute;top:-16px;left:var(--x);width:8px;height:12px;border-radius:2px;animation:fall var(--t) ease-in var(--d) forwards;opacity:0}
+@keyframes fall{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:.9;transform:translate(var(--dx),105vh) rotate(var(--r))}}
+.cat-nap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:6px 0 4px}
+.cat-nap .empty{padding:0;margin:0;max-width:34ch}
+.nap-art{position:relative;width:92px;height:106px}
+.nap-art svg{width:100%;height:100%}
+.nap-head{animation:breathe 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes breathe{0%,100%{transform:rotate(-9deg) scale(1)}50%{transform:rotate(-9deg) scale(1.025,1.04)}}
+.zzz{position:absolute;right:-12px;top:-2px;width:30px;height:40px}
+.zzz i{position:absolute;left:0;bottom:0;font-style:normal;font-weight:700;font-family:var(--font-display);color:var(--muted);opacity:0;animation:zzz 3s ease-out infinite}
+.zzz i:nth-child(2){animation-delay:1s;font-size:1.15em}
+.zzz i:nth-child(3){animation-delay:2s;font-size:1.3em}
+@keyframes zzz{0%{opacity:0;transform:translate(0,0) scale(.6)}20%{opacity:.9}100%{opacity:0;transform:translate(16px,-34px) scale(1.1)}}
+.cook-cat{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);width:76px;z-index:2;pointer-events:none}
+.cook-cat svg{width:100%;height:auto;display:block}
+.cook-cat.pop svg{animation:cat-pop .55s cubic-bezier(.3,1.5,.5,1) both}
+.cook-cat.pop .toque{animation:toque-in .5s .45s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes cat-pop{from{transform:scale(.2) translateY(30px);opacity:0}}
+@keyframes toque-in{from{transform:translateY(-90px);opacity:0}}
+.cook-hi{position:fixed;right:84px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:2;background:var(--fg);color:var(--bg);font-size:.8rem;font-weight:600;padding:4px 10px;border-radius:999px 999px 4px 999px;animation:hi 2.4s ease both;pointer-events:none;white-space:nowrap}
+@keyframes hi{0%{opacity:0;transform:scale(.6)}15%,80%{opacity:1;transform:none}100%{opacity:0}}
+#update-banner{overflow:visible;margin-top:44px;animation:sign-in .7s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes sign-in{from{transform:translate(-50%,-160%)}}
+.ub-cat{position:absolute;right:26px;bottom:calc(100% - 14px);width:70px;pointer-events:none}
+.ub-cat svg{width:100%;height:auto;display:block}
+@media (prefers-reduced-motion:reduce){.cat-live *,.me-cat.purr svg,.nap-head,.zzz i,.cook-cat *,#update-banner{animation:none!important}.zzz i{opacity:.7}.zzz i:nth-child(2){transform:translate(8px,-14px)}.zzz i:nth-child(3){transform:translate(16px,-28px)}}
 /* protein stripe on meals */
 .meal.has-prot::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:4px;border-radius:0 3px 3px 0;background:linear-gradient(var(--p1) 50%,var(--p2,var(--p1)) 50%)}
 .prot-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:10px}
@@ -701,6 +762,7 @@ function addPeriod(s, rec){
   return iso(d);
 }
 const REC = { none:'Une fois', daily:'Chaque jour', weekly:'Chaque semaine', monthly:'Chaque mois' };
+const CAT_SVG = { roux:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="mer-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#FFC77A"/> <stop offset=".55" stop-color="#F59B3C"/> <stop offset="1" stop-color="#D96F17"/> </radialGradient> <radialGradient id="mer-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#F59B3C"/><stop offset="1" stop-color="#D96F17"/> </radialGradient> <linearGradient id="mer-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="mer-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FBE3C8"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#mer-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#mer-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F6A3AE"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F6A3AE"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#mer-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#C25A10" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#C25A10" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#C25A10" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#mer-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFF4E6" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#mer-shine)" opacity=".8"/> </g></svg>', gris:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="meg-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#D9DEE6"/> <stop offset=".55" stop-color="#A7AEB9"/> <stop offset="1" stop-color="#7A828E"/> </radialGradient> <radialGradient id="meg-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#A7AEB9"/><stop offset="1" stop-color="#7A828E"/> </radialGradient> <linearGradient id="meg-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="meg-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEFF3"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#meg-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#meg-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F3A6B4"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F3A6B4"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#meg-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#6B727D" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#6B727D" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#6B727D" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#meg-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#meg-shine)" opacity=".8"/> </g></svg>' };
 const SHOP_CATS = ['Fruits & légumes','Viandes & poissons','Frais','Épicerie','Surgelés','Boissons','Maison & hygiène','Autre'];
 const EXP_CATS = ['Logement','Courses','Sorties & restos','Transport','Maison','Vacances','Santé','Autre'];
 const STATUS = { idee:'Idées', encours:'En cours', fini:'Terminés' };
@@ -887,12 +949,12 @@ function vAccueil(){
       <div class="today-meals">${SLOTS.map(([s,l]) => homeMeal(t, s, l)).join('')}</div>
     </section>
     <section class="card"><div class="card-h"><h2>À faire aujourd'hui</h2><a href="#taches">Toutes les tâches</a></div>
-      ${due.length ? `<ul class="list">${due.map(taskRow).join('')}</ul>` : `<p class="empty">Rien d'urgent aujourd'hui.${soon.length?'':' Ajoutez une tâche dans l’onglet Tâches.'}</p>`}
+      ${due.length ? `<ul class="list">${due.map(taskRow).join('')}</ul>` : `${catNap(`Rien d'urgent aujourd'hui.${soon.length?'':' Ajoutez une tâche dans l’onglet Tâches.'}`)}`}
       ${soon.length ? `<p class="group-h">Dans les 3 prochains jours</p><ul class="list">${soon.map(taskRow).join('')}</ul>` : ''}
     </section>
     <section class="card"><div class="card-h"><h2>Prochains rendez-vous</h2><a href="#agenda">Agenda</a></div>
       ${ev.length ? `<ol class="tl">${ev.map(e => { const d = parse(e.date); return `<li class="${e.date === t ? 'is-today' : ''}"><span class="tl-d"><small>${esc(F({ weekday:'short' }).format(d).replace('.', ''))}</small><b>${d.getDate()}</b></span>
-        <div class="tl-m"><span class="row-title">${esc(e.title)}${exChip(e)}</span><span class="meta"><span>${rel(e.date)}${e.time?' · '+esc(e.time):''}</span>${pill(e.who)}${e.place?`<span>${esc(e.place)}</span>`:''}</span></div></li>`; }).join('')}</ol>` : '<p class="empty">Aucun rendez-vous à venir.</p>'}
+        <div class="tl-m"><span class="row-title">${esc(e.title)}${exChip(e)}</span><span class="meta"><span>${rel(e.date)}${e.time?' · '+esc(e.time):''}</span>${pill(e.who)}${e.place?`<span>${esc(e.place)}</span>`:''}</span></div></li>`; }).join('')}</ol>` : catNap('Aucun rendez-vous à venir.')}
     </section>
     <section class="card"><div class="card-h"><h2>Budget commun</h2><a href="#budget">Détails</a></div>
       <p class="balance-big" style="font-size:1.2rem">${b.txt}</p>
@@ -923,7 +985,7 @@ function vTaches(){
   <div class="chips">${chip('all','Toutes')}${chip('a',state.config.a)}${chip('b',state.config.b)}${chip('both','Ensemble')}<span class="spacer"></span>
     <label class="toggle"><input type="checkbox" class="chk" data-act="showdone" ${state.showDone?'checked':''}> Afficher les terminées (${done.length})</label></div>
   <section class="card">
-    ${open.length ? `<ul class="list">${open.map(taskRow).join('')}</ul>` : '<p class="empty">Aucune tâche en attente. Ajoutez-en une avec le formulaire ci-dessus.</p>'}
+    ${open.length ? `<ul class="list">${open.map(taskRow).join('')}</ul>` : '${catNap(`Aucune tâche en attente. Ajoutez-en une avec le formulaire ci-dessus.`)}'}
     ${state.showDone && done.length ? `<p class="group-h" style="margin-top:16px">Terminées</p><ul class="list">${done.map(taskRow).join('')}</ul>
       <div style="margin-top:10px"><button class="btn ghost sm" data-act="clear-tasks">Supprimer les tâches terminées</button></div>` : ''}
   </section>`;
@@ -953,7 +1015,7 @@ function vCourses(){
       <input type="checkbox" class="chk" data-act="shop" data-id="${s.id}" ${s.done?'checked':''} aria-label="Acheté : ${esc(s.name)}">
       <div class="row-main"><span class="row-title">${esc(s.name)}${exChip(s)}</span>${(() => { const q = shopQty(s), f = shopFor(s); return q || f.length ? `<span class="meta">${q?`<span>${esc(q)}</span>`:''}${f.length?`<span>Pour : ${esc(f.join(', '))}</span>`:''}</span>` : ''; })()}</div>
       <button class="icon-btn" data-act="del" data-col="shopping" data-id="${s.id}" aria-label="Supprimer l'article">×</button></li>`).join('')}</ul></section>`).join('')}</div>`
-    : '<section class="card"><p class="empty">La liste est vide. Ajoutez ce qu’il manque à la maison, l’autre le verra tout de suite.</p></section>'}`;
+    : '<section class="card">${catNap(`La liste est vide. Ajoutez ce qu’il manque à la maison, l’autre le verra tout de suite.`)}</section>'}`;
 }
 
 /* ---------- recurring expenses ----------
@@ -1079,6 +1141,7 @@ function vCook(){
   return `<div class="cook" role="dialog" aria-modal="true" aria-label="Mode cuisine : ${esc(r.title)}">
     <div class="cook-top"><button class="icon-btn" data-act="cook-close" aria-label="Quitter le mode cuisine">×</button>
       <div class="cook-title"><b>${esc(r.title)}</b><span>Étape ${i + 1} sur ${n}</span></div>
+      ${(() => { const fresh = Date.now() - (c.t0 || 0) < 2400; return `<span class="cook-cat ${fresh ? 'pop' : ''}">${catSvg(myCat(), null, 'cat-live', true)}</span>${fresh ? '<span class="cook-hi">À vos fourneaux !</span>' : ''}`; })()}
       <button class="btn ghost sm" data-act="cook-ings" aria-pressed="${!!c.ings}">Ingrédients</button></div>
     <div class="cook-prog"><span style="width:${(i + 1) / n * 100}%"></span></div>
     ${c.ings ? `<ul class="cook-ings">${(r.items || []).map((it, k) => `<li><label><input type="checkbox" class="chk" data-act="cook-ing" data-k="${k}" ${c.done && c.done[k] ? 'checked' : ''}><span>${esc(ingName(it))}</span><b>${esc(qtyStr(it.qty, it.unit))}</b></label></li>`).join('')}</ul>` : ''}
@@ -1161,7 +1224,7 @@ function vNutri(){
     <p class="hint" style="margin-top:10px">Valeurs moyennes des ingrédients crus (pâtes, riz et légumes secs pesés secs), à titre indicatif.</p>
   </div></div>`;
 }
-function openCook(id){ state.cook = { id, step:0, ings:false, done:{} }; state.editMeal = null; render(); keepAwake(true); }
+function openCook(id){ state.cook = { id, step:0, ings:false, done:{}, t0:Date.now() }; state.editMeal = null; render(); keepAwake(true); }
 function vTimerCard(){
   const sc = shortcutPref();
   return `<section class="card" style="display:flex;flex-direction:column;gap:10px">
@@ -1250,7 +1313,7 @@ function vAgenda(){
     <button class="btn" type="submit">Ajouter</button>
   </form>
   <section class="card">
-    ${up.length ? days(up).map(dayBlock).join('') : '<p class="empty">Aucun rendez-vous à venir.</p>'}
+    ${up.length ? days(up).map(dayBlock).join('') : catNap('Aucun rendez-vous à venir.')}
     ${past.length ? `<details class="past"><summary>Rendez-vous passés (${past.length})</summary>${days(past).map(dayBlock).join('')}</details>` : ''}
   </section>`;
 }
@@ -1619,7 +1682,7 @@ function profileOf(r){
   return { base, fam, vegProt, kinds:[...fam, ...vegProt], veg, hasProtein:fam.length + vegProt.length > 0,
            fish:fam.some(f => f === 'poisson' || f === 'fruits de mer') };
 }
-window.foyerDebug = { profileOf:r => profileOf(r), tempOf:r => tempOf(r), durationsIn:t => durationsIn(t) }; // lets tests inspect how a dish is classified
+window.foyerDebug = { profileOf:r => profileOf(r), tempOf:r => tempOf(r), durationsIn:t => durationsIn(t), banner:n => showUpdateBanner(n), cat:k => { meCat = k; document.querySelectorAll('.me-cat').forEach(e => e.dataset.cat = ''); paintMeCat(); } }; // lets tests inspect how a dish is classified
 // hot or cold dish: the recipe's own choice, else read from its name and tags
 // cold: the name starts with a cold dish (« Salade… », « Wraps… ») or the recipe is tagged « salade »;
 // a side salad (« Quiche lorraine et salade ») does not make a dish cold
@@ -2077,7 +2140,7 @@ function vEnCourses(){
       <input id="f-quick" name="name" type="text" required placeholder="Un oubli ? Ajouter un article" aria-label="Ajouter un article">
       <button class="btn ghost" type="submit">Ajouter</button></form>
     ${wakeOk ? '<p class="hint" style="margin-top:6px">L’écran reste allumé pendant les courses.</p>' : ''}
-    ${!all.length ? '<section class="card" style="margin-top:18px"><p class="empty">La liste est vide. Ajoutez des articles dans l’onglet Courses, ou planifiez des repas dans Menus.</p></section>' : ''}
+    ${!all.length ? '<section class="card" style="margin-top:18px">${catNap(`La liste est vide. Ajoutez des articles dans l’onglet Courses, ou planifiez des repas dans Menus.`)}</section>' : ''}
     ${all.length && !todo.length ? `<section class="card shop-end" style="margin-top:18px"><h2>Tout est dans le panier</h2><p class="sub">Vous pouvez terminer les courses.</p><button class="btn" data-act="shop-finish" style="margin-top:12px">Terminer</button></section>` : ''}
     ${cats.map(c => `<section class="aisle"><h2><span>${esc(c)}</span><span>${groups[c].length}</span></h2>
       ${groups[c].sort((x,y) => (x.name||'').localeCompare(y.name||'', 'fr')).map(pickRow).join('')}</section>`).join('')}
@@ -2391,6 +2454,8 @@ document.addEventListener('change', e => {
   if (act === 'ing-cat') { updDoc('ingredients', id, { cat:el.value });
     state.shopping.filter(s => s.ingId === id && !s.done).forEach(s => updDoc('shopping', s.id, { cat:el.value })); return; }
   if (act === 'task') { tick(id);
+    { const t0 = state.tasks.find(x => x.id === id), td = today();
+      if (el.checked && t0 && t0.due && t0.due <= td && !state.tasks.some(x => x.id !== id && !x.done && x.due && x.due <= td)) setTimeout(catParty, 350); }
     const t = state.tasks.find(x => x.id === id); if (!t) return;
     if (el.checked && t.rec && t.rec !== 'none') {
       let next = addPeriod(t.due || today(), t.rec); while (next <= today()) next = addPeriod(next, t.rec);
@@ -2412,7 +2477,7 @@ document.addEventListener('click', e => {
   else if (act === 'taskwho') { state.taskWho = el.dataset.v; render(); }
   else if (act === 'clear-tasks') state.tasks.filter(t => t.done).forEach(t => delDoc('tasks', t.id));
   else if (act === 'shop-tick') { tick(id); const s = state.shopping.find(x => x.id === id); if (s) updDoc('shopping', id, { done:!s.done }); }
-  else if (act === 'shop-finish') { state.shopFinish = 'pay'; state.shopPaid = null; render(true); window.scrollTo(0, 0); const t = document.getElementById('f-pay-total'); if (t) t.focus({ preventScroll:true }); }
+  else if (act === 'shop-finish') { catWalk(); state.shopFinish = 'pay'; state.shopPaid = null; render(true); window.scrollTo(0, 0); const t = document.getElementById('f-pay-total'); if (t) t.focus({ preventScroll:true }); }
   else if (act === 'pay-who') { state.shopPay.payer = el.dataset.v; render();
     if (el.dataset.v === 'both') { const t = num(document.getElementById('f-pay-total').value), a = document.getElementById('f-pay-a'), b = document.getElementById('f-pay-b');
       if (t > 0 && a && b && !a.value && !b.value) { a.value = (t / 2).toFixed(2); b.value = (t - +a.value).toFixed(2); } } }
@@ -2444,6 +2509,7 @@ document.addEventListener('click', e => {
   else if (act === 'cook-open') { openCook(id); }
   else if (act === 'nutri-open') { state.nutri = { id, n:state.nutriN || 2 }; render(); }
   else if (act === 'theme') setTheme(el.dataset.v);
+  else if (act === 'purr') catPurr(el);
   else if (act === 'nutri-close') { state.nutri = null; render(); }
   else if (act === 'nutri-n') { state.nutri.n = state.nutriN = Math.min(12, Math.max(1, state.nutri.n + (+el.dataset.d))); render(); }
   else if (act === 'ing-nut') { state.ingNutEdit = state.ingNutEdit === id ? null : id; render(); const f = document.getElementById('f-nut-kcal'); if (f) f.focus(); }
@@ -2633,7 +2699,6 @@ async function applySeedUpdates(){
 /* ---------- who is signed in: a small cat in the corner ----------
    Matched on a SHA-256 fingerprint of the account e-mail, so the published page
    never contains the addresses themselves. */
-const CAT_SVG = { roux:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="mer-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#FFC77A"/> <stop offset=".55" stop-color="#F59B3C"/> <stop offset="1" stop-color="#D96F17"/> </radialGradient> <radialGradient id="mer-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#F59B3C"/><stop offset="1" stop-color="#D96F17"/> </radialGradient> <linearGradient id="mer-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="mer-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FBE3C8"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#mer-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#mer-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F6A3AE"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F6A3AE"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#mer-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#C25A10" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#C25A10" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#C25A10" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#mer-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFF4E6" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#mer-shine)" opacity=".8"/> </g></svg>', gris:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="meg-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#D9DEE6"/> <stop offset=".55" stop-color="#A7AEB9"/> <stop offset="1" stop-color="#7A828E"/> </radialGradient> <radialGradient id="meg-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#A7AEB9"/><stop offset="1" stop-color="#7A828E"/> </radialGradient> <linearGradient id="meg-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="meg-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEFF3"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#meg-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#meg-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F3A6B4"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F3A6B4"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#meg-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#6B727D" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#6B727D" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#6B727D" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#meg-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#meg-shine)" opacity=".8"/> </g></svg>' };
 const CAT_OF = {
   'badd25caff466aca43acf441328b4e9a3089a794d22f770c99bd47277735ed35':'roux', // Christelle
   '01a4dccb4b6e1d21c70b1f45023c14dc3c4df0b3be778b959c899728eeaa2e19':'gris', // Thomas
@@ -2657,16 +2722,83 @@ function paintMeCat(){
   const label = meCat === 'roux' ? 'Connectée : Christelle' : meCat === 'gris' ? 'Connecté : Thomas' : '';
   ['me-cat-side', 'me-cat-top'].forEach(id => { const el = document.getElementById(id); if (!el) return;
     if (!meCat) { el.hidden = true; el.innerHTML = ''; return; }
-    if (el.dataset.cat !== meCat) { el.innerHTML = CAT_SVG[meCat].replace(/id="me/g, 'id="' + id + '-me').replace(/url\(#me/g, 'url(#' + id + '-me'); el.dataset.cat = meCat; }
+    if (el.dataset.cat !== meCat) { el.innerHTML = catSvg(meCat, null, 'cat-live'); el.dataset.cat = meCat; el.dataset.act = 'purr'; }
     el.hidden = false; el.title = label; el.setAttribute('aria-label', label); el.setAttribute('role', 'img');
   });
 }
+/* ---------- the cats come alive ----------
+   Built from the CAT_SVG heads: ears in their own groups (to twitch), eyes open / closed / happy,
+   then whole cats for the little scenes (walking with the shopping bag, jumping for joy, napping, chef). */
+const myCat = () => meCat || (state.prefs && state.prefs.me === 'a' ? 'gris' : 'roux');
+const CAT_FUR = { roux:['#F59B3C', '#D96F17', '#C25A10', '#3B2A20'], gris:['#A7AEB9', '#7A828E', '#6B727D', '#2C3440'] };
+let catUid = 0;
+function catHead(kind, eyes){
+  kind = kind === 'gris' ? 'gris' : 'roux'; const p = 'k' + (++catUid) + '-', ec = CAT_FUR[kind][3];
+  let h = CAT_SVG[kind]; h = h.slice(h.indexOf('>') + 1, h.lastIndexOf('</svg>')).replace(/id="me/g, `id="${p}me`).replace(/url\(#me/g, `url(#${p}me`);
+  const ear = {}; h = h.replace(/<path d="M(-?)(92,-30|80,-48)[^>]*\/>/g, (m, neg) => { (ear[neg ? 'l' : 'r'] ||= []).push(m); return ''; });
+  h = h.replace('<!-- oreilles -->', `<g class="ear ear-l">${(ear.l || []).join('')}</g><g class="ear ear-r">${(ear.r || []).join('')}</g>`);
+  const a = h.indexOf('<!-- yeux -->'), b = h.indexOf('<!-- nez et bouche -->'), open = h.slice(a, b);
+  const arc = up => `<g fill="none" stroke="${ec}" stroke-width="7" stroke-linecap="round">${up ? '<path d="M-58,8 C-50,-12 -34,-12 -26,8"/><path d="M26,8 C34,-12 50,-12 58,8"/>' : '<path d="M-58,0 C-50,14 -34,14 -26,0"/><path d="M26,0 C34,14 50,14 58,0"/>'}</g>`;
+  const e = eyes === 'sleep' ? arc(false) : eyes === 'happy' ? arc(true) : `<g class="eyes-open">${open}</g><g class="eyes-blink">${arc(false)}</g>`;
+  return h.slice(0, a) + e + h.slice(b);
+}
+const TOQUE = '<g class="toque"><path d="M-64,-96 C-64,-108 -56,-112 -48,-112 L48,-112 C56,-112 64,-108 64,-96 L64,-80 C30,-72 -30,-72 -64,-80 Z" fill="#fff" stroke="#D9DCE1" stroke-width="3"/><path d="M-56,-110 C-92,-114 -96,-160 -62,-166 C-60,-200 -14,-210 0,-184 C14,-210 60,-200 62,-166 C96,-160 92,-114 56,-110 Z" fill="#fff" stroke="#D9DCE1" stroke-width="3"/><path d="M-26,-118 C-24,-140 -18,-150 -12,-156 M22,-118 C22,-138 28,-148 34,-152" stroke="#E6E8EC" stroke-width="3" fill="none" stroke-linecap="round"/></g>';
+const catSvg = (kind, eyes, cls, chef) => `<svg class="${cls || ''}" viewBox="${chef ? '-122 -212 244 316' : '-122 -142 244 246'}" aria-hidden="true">${catHead(kind, eyes)}${chef ? TOQUE : ''}</svg>`;
+// side view, walking, a paper bag of groceries in its mouth
+function catWalkSvg(kind){
+  const [fur, dark, stripe] = CAT_FUR[kind];
+  const leg = (x, c) => `<rect class="leg ${c}" x="${x}" y="178" width="20" height="50" rx="10" fill="${dark}"/>`;
+  return `<svg viewBox="0 0 330 250" aria-hidden="true" style="overflow:visible">
+    <path class="tail" d="M74,160 C36,150 18,118 30,76" stroke="${dark}" stroke-width="17" fill="none" stroke-linecap="round"/>
+    ${leg(92, 'b1')}${leg(124, 'b2')}${leg(186, 'f1')}${leg(214, 'f2')}
+    <ellipse cx="152" cy="168" rx="88" ry="46" fill="${fur}"/>
+    <path d="M118,128 C124,146 124,168 116,186 M146,124 C152,144 152,170 146,192 M174,126 C180,146 180,168 174,188" stroke="${stripe}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".55"/>
+    <g transform="translate(240 118) scale(.5)">${catHead(kind)}</g>
+    <path d="M244,146 C240,160 248,170 256,174 M318,174 C322,160 304,146 282,148" stroke="#8A5A2B" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <rect x="266" y="128" width="15" height="62" rx="7" fill="#E8C27A" transform="rotate(-16 273 160)"/>
+    <rect x="296" y="116" width="14" height="68" rx="5" fill="#5DAA4E"/><rect x="296" y="160" width="14" height="22" fill="#F1F5E9"/>
+    <path d="M248,170 L324,170 L314,246 L258,246 Z" fill="#C99A5B"/><path d="M248,170 L324,170 L321,183 L251,183 Z" fill="#B3854A"/>
+  </svg>`;
+}
+// sitting, front view, for the jump of joy
+function catSitSvg(kind){
+  const [fur, dark] = CAT_FUR[kind];
+  return `<svg viewBox="0 0 200 230" aria-hidden="true">
+    <path d="M150,196 C190,186 192,140 172,124" stroke="${dark}" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <ellipse cx="100" cy="172" rx="58" ry="50" fill="${fur}"/><ellipse cx="100" cy="182" rx="30" ry="34" fill="#fff" opacity=".55"/>
+    <ellipse cx="78" cy="216" rx="17" ry="11" fill="${dark}"/><ellipse cx="122" cy="216" rx="17" ry="11" fill="${dark}"/>
+    <g transform="translate(100 84) scale(.6)">${catHead(kind, 'happy')}</g></svg>`;
+}
+// asleep on its paws, for empty lists
+function catNap(text){
+  const kind = myCat(), [, dark] = CAT_FUR[kind];
+  return `<div class="cat-nap"><div class="nap-art"><svg viewBox="-130 -150 260 300" aria-hidden="true"><g class="nap-head" transform="rotate(-9)">${catHead(kind, 'sleep')}</g>
+    <ellipse cx="-46" cy="112" rx="40" ry="20" fill="${dark}"/><ellipse cx="46" cy="112" rx="40" ry="20" fill="${dark}"/></svg>
+    <span class="zzz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span></div><p class="empty">${text}</p></div>`;
+}
+const calmMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function catScene(html, cls, ms){
+  if (calmMotion()) return;
+  document.querySelectorAll('.' + cls).forEach(x => x.remove());
+  const d = document.createElement('div'); d.className = 'cat-scene ' + cls; d.setAttribute('aria-hidden', 'true'); d.innerHTML = html;
+  document.body.appendChild(d); setTimeout(() => d.remove(), ms);
+}
+// « Terminer » the shopping: my cat walks across with the bag
+const catWalk = () => catScene(`<div class="walker">${catWalkSvg(myCat())}</div>`, 'scene-walk', 3600);
+// last task of the day ticked: both cats jump for joy under confetti
+function catParty(){
+  const cols = ['var(--pa)', 'var(--pb)', 'var(--accent)', 'var(--k-porc)', 'var(--k-volaille)', 'var(--k-mer)'];
+  const conf = Array.from({ length:46 }, (_, i) => `<i style="--x:${(Math.random() * 100).toFixed(1)}vw;--dx:${(Math.random() * 80 - 40).toFixed(0)}px;--r:${(Math.random() * 720 - 360).toFixed(0)}deg;--d:${(Math.random() * .7).toFixed(2)}s;--t:${(1.6 + Math.random() * 1.2).toFixed(2)}s;background:${cols[i % cols.length]};${i % 3 ? '' : 'border-radius:50%;'}"></i>`).join('');
+  catScene(`<div class="confetti">${conf}</div><div class="party"><p class="party-msg">Tout est fait !</p><div class="jumper j1">${catSitSvg('gris')}</div><div class="jumper j2">${catSitSvg('roux')}</div></div>`, 'scene-party', 3400);
+}
+// the corner cat purrs when touched
+function catPurr(el){ el.classList.remove('purr'); void el.offsetWidth; el.classList.add('purr'); clearTimeout(el._p); el._p = setTimeout(() => el.classList.remove('purr'), 1300); try { navigator.vibrate && navigator.vibrate([12, 30, 12, 30, 12]); } catch {} }
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795363879';
+const APP_BUILD = '1795364224';
 // What this version brings: shown by the « Nouvelle version » banner of the copies still open (keep one line)
-const APP_NOTES = ["Réglages : choix de l’apparence, clair, sombre, automatique selon l’heure (sombre après le coucher du soleil) ou comme l’appareil"];
+const APP_NOTES = ["Les chats s’animent : votre chat cligne des yeux et ronronne quand on le touche", "Courses : en appuyant sur « Terminer », votre chat traverse l’écran avec le sac", "Tâches : la dernière tâche du jour cochée, les deux chats sautent de joie sous les confettis", "Listes vides : un chat endormi", "Mode cuisine : le chat apparaît en toque de chef"];
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
@@ -2682,7 +2814,8 @@ function showUpdateBanner(notes){
   if (document.getElementById('update-banner')) return;
   const b = document.createElement('div'); b.id = 'update-banner'; b.setAttribute('role', 'status');
   const list = (notes || []).slice(0, 6).map(t => `<li>${esc(String(t))}</li>`).join('');
-  b.innerHTML = `<div class="ub-head"><b>Nouvelle version disponible</b><button class="icon-btn" type="button" data-later aria-label="Plus tard">×</button></div>${list ? `<ul class="ub-notes">${list}</ul>` : ''}<button class="btn sm" type="button" data-update>Mettre à jour</button>`;
+  const [, dk] = CAT_FUR[myCat()];
+  b.innerHTML = `<div class="ub-cat"><svg viewBox="-130 -150 260 290" class="cat-live" aria-hidden="true">${catHead(myCat())}<ellipse cx="-60" cy="118" rx="34" ry="20" fill="${dk}"/><ellipse cx="60" cy="118" rx="34" ry="20" fill="${dk}"/></svg></div><div class="ub-head"><b>Nouvelle version disponible</b><button class="icon-btn" type="button" data-later aria-label="Plus tard">×</button></div>${list ? `<ul class="ub-notes">${list}</ul>` : ''}<button class="btn sm" type="button" data-update>Mettre à jour</button>`;
   b.querySelector('[data-update]').addEventListener('click', () => { location.replace(location.pathname + '?v=' + newBuild + location.hash); });
   b.querySelector('[data-later]').addEventListener('click', () => b.remove());
   document.body.appendChild(b);
