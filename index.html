@@ -100,7 +100,7 @@ nav svg{width:20px;height:20px;flex:none}
 .field{display:flex;flex-direction:column;gap:4px;flex:1 1 140px;min-width:0}
 .field.grow{flex:3 1 240px}
 .field label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;min-height:40px}
+input[type=text],input[type=search],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;min-height:40px}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:var(--r-sm);padding:9px 16px;min-height:40px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
 .btn:hover{filter:brightness(1.06)}
@@ -213,6 +213,15 @@ details[open] summary::before{content:"▾ "}
 .meal .pill{font-size:.68rem;padding:0 7px}
 .rec-tag{font-size:.7rem;color:var(--accent);font-weight:600}
 .editor{margin-bottom:22px;display:flex;flex-direction:column;gap:12px;border-color:var(--accent)}
+.picked{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:40px}
+.picked b{font-size:1.02rem}
+.pick-list{display:flex;flex-direction:column;gap:6px}
+.pick-rec{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--bg);cursor:pointer;color:var(--fg);font:inherit}
+.pick-rec:hover,.pick-rec:focus-visible{border-color:var(--accent)}
+.pick-rec-t{font-weight:600;overflow-wrap:anywhere}
+.pick-rec .price{grid-row:1 / span 2;grid-column:2}
+.pick-rec-m{font-size:.78rem;color:var(--muted)}
+.pick-list .btn{align-self:flex-start}
 .editor textarea{min-height:120px;resize:vertical;line-height:1.45}
 .editor .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .editor .acts{display:flex;flex-wrap:wrap;gap:8px}
@@ -921,18 +930,28 @@ function mealEditor(){
   const slotLbl = slot === 'midi' ? 'Déjeuner' : 'Dîner';
   const rid = state.editMeal.recipeId ?? (m.recipeId || '');
   const rec = rid ? state.recipes.find(r => r.id === rid) : null;
-  const recs = state.recipes.slice().sort((x,y) => (x.title||'').localeCompare(y.title||'', 'fr'));
-  const future = date >= today();
+  const free = !rec && (state.editMeal.free || (!m.recipeId && m.title));
+  const q = state.mealQuery || '';
+  const hits = !rec || state.editMeal.search ? searchRecipes(q) : [];
   return `<form class="card editor" data-form="meal" data-date="${date}" data-slot="${slot}" autocomplete="off" id="meal-editor">
     <div class="card-h" style="margin:0"><div><p class="eyebrow">${slotLbl}</p><h2 style="text-transform:capitalize">${esc(fmtLong(date))}</h2></div>
       <button type="button" class="icon-btn" data-act="meal-close" aria-label="Fermer">×</button></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <div class="field grow"><label for="f-meal-rec-${k}">Recette</label><select id="f-meal-rec-${k}" name="recipeId" data-act="meal-rec">
-        <option value="">Plat libre (sans fiche recette)</option>${recs.map(r => `<option value="${r.id}" ${r.id===rid?'selected':''}>${esc(r.title)}${r.price?' · '+'€'.repeat(r.price):''}</option>`).join('')}</select></div>
+      <input type="hidden" name="recipeId" value="${esc(rid)}">
+      ${rec && !state.editMeal.search ? `<div class="field grow"><span class="flabel" style="margin:0">Recette</span>
+          <div class="picked"><b>${esc(rec.title)}</b>${priceTag(rec.price)}<button type="button" class="btn ghost sm" data-act="meal-search">Changer</button></div></div>`
+        : `<div class="field grow"><label for="f-meal-q-${k}">Chercher une recette</label>
+          <input id="f-meal-q-${k}" class="meal-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Tapez un nom, un ingrédient, « rapide »…" value="${esc(q)}"></div>`}
       <div class="field"><label for="f-meal-cook-${k}">Qui cuisine</label><select id="f-meal-cook-${k}" name="cook">
         <option value="" ${!m.cook?'selected':''}>Pas décidé</option><option value="both" ${m.cook==='both'?'selected':''}>Ensemble</option>
         <option value="a" ${m.cook==='a'?'selected':''}>${esc(state.config.a)}</option><option value="b" ${m.cook==='b'?'selected':''}>${esc(state.config.b)}</option></select></div>
     </div>
+    ${!rec || state.editMeal.search ? `<div class="pick-list" role="listbox" aria-label="Recettes trouvées">
+        ${hits.length ? hits.map(r => { const pr = profileOf(r); return `<button type="button" class="pick-rec" role="option" data-act="meal-pick" data-id="${r.id}">
+          <span class="pick-rec-t">${esc(r.title)}</span><span class="pick-rec-m">${esc(proteinLabel(pr))}${pr.base ? ' · ' + BASES[pr.base] : ''}</span>${priceTag(r.price)}</button>`; }).join('')
+          : `<p class="hint">Aucune recette ne contient « ${esc(q)} ».</p>`}
+        ${rec ? '<button type="button" class="btn ghost sm" data-act="meal-search-cancel">Garder la recette actuelle</button>' : free ? '' : '<button type="button" class="btn ghost sm" data-act="meal-free">Plat libre, sans fiche recette</button>'}
+      </div>` : ''}
     ${rec ? `
     <div class="cols">
       <div><p class="flabel">Ingrédients</p>${(rec.items||[]).length ? `<ul class="inglist">${rec.items.map(it => `<li><span>${esc(ingName(it))}</span><span class="amount">${esc(qtyStr(it.qty, it.unit))}</span></li>`).join('')}</ul>` : '<p class="hint">Aucun ingrédient dans cette recette.</p>'}</div>
@@ -940,7 +959,7 @@ function mealEditor(){
         ${rec.link && /^https?:\/\//i.test(rec.link) ? `<p style="margin-top:8px"><a href="${esc(rec.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a></p>` : ''}</div>
     </div>
     <p class="hint">${rid === (m.recipeId||'') && m.recipeId ? '✓ Les ingrédients de cette recette sont dans la liste de courses.' : 'Les ingrédients s’ajoutent automatiquement à la liste de courses.'}
-      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>` : `
+      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>` : !free ? '' : `
     <div class="field"><label for="f-meal-title-${k}">Plat</label><input id="f-meal-title-${k}" name="title" type="text" placeholder="Ex. Lasagnes aux légumes" value="${esc(m.recipeId ? '' : (m.title||''))}"></div>
     <div class="cols">
       <div class="field"><label for="f-meal-ing-${k}">Ingrédients (un par ligne)</label><textarea id="f-meal-ing-${k}" name="ingredients" placeholder="500 g de pâtes à lasagnes&#10;2 courgettes&#10;Mozzarella">${esc(m.ingredients||'')}</textarea></div>
@@ -949,7 +968,7 @@ function mealEditor(){
     <div class="field"><label for="f-meal-link-${k}">Lien vers la recette</label><input id="f-meal-link-${k}" name="link" type="text" inputmode="url" placeholder="Facultatif : https://…" value="${esc(m.link||'')}"></div>
     ${m.link && /^https?:\/\//i.test(m.link) ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a>` : ''}
     <p class="hint">Astuce : enregistrez vos plats habituels dans <a href="#recettes">la banque de recettes</a>, leurs ingrédients iront tout seuls dans les courses.</p>`}
-    <div class="acts"><button class="btn" type="submit">Enregistrer</button>
+    <div class="acts">${rec || free ? '<button class="btn" type="submit">Enregistrer</button>' : ''}
       ${!rec && (m.ingredients||'').trim() ? `<button type="button" class="btn ghost" data-act="meal-shop" data-id="${k}">Ajouter les ingrédients aux courses</button>` : ''}
       ${m.title ? (state.confirmDel==='meal-'+k ? `<button type="button" class="btn danger" data-act="meal-del" data-id="${k}">Confirmer la suppression</button>` : `<button type="button" class="btn ghost" data-act="askdel" data-id="meal-${k}">Supprimer le repas</button>`) : ''}
     </div>
@@ -985,6 +1004,20 @@ const ingByName = n => { const s = String(n||'').trim().toLowerCase(); return st
 const ingName = it => (ingById(it.ingId) || {}).name || it.name || 'Ingrédient supprimé';
 const PRICE_LBL = ['', 'Économique', 'Prix moyen', 'Plus cher'];
 const priceTag = p => { p = +p || 0; if (!p) return ''; return `<span class="price" title="${PRICE_LBL[p]}" aria-label="${PRICE_LBL[p]}">${'€'.repeat(p)}<span class="price-off">${'€'.repeat(3-p)}</span></span>`; };
+// accent-insensitive recipe search: title first, then tags and ingredients (dishes only until something is typed)
+const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function searchRecipes(q, max = 8){
+  const words = norm(q).split(/\s+/).filter(Boolean);
+  const list = state.recipes.filter(r => words.length || !/dessert|petit-dejeuner/.test(norm(r.tags)));
+  const scored = list.map(r => {
+    const title = norm(r.title), rest = norm((r.tags || '') + ' ' + (r.items || []).map(ingName).join(' '));
+    let sc = 0;
+    for (const w of words) { if (title.startsWith(w)) sc += 4; else if ((' ' + title).includes(' ' + w)) sc += 3; else if (title.includes(w)) sc += 2; else if (rest.includes(w)) sc += 1; else return null; }
+    return [r, sc];
+  }).filter(Boolean);
+  scored.sort((a, b) => b[1] - a[1] || (a[0].title || '').localeCompare(b[0].title || '', 'fr'));
+  return scored.slice(0, max).map(x => x[0]);
+}
 const newRow = () =>({ k:uid(), name:'', qty:'', unit:'pièce' });
 
 /* Shopping sync: each bank ingredient has one shopping line ("ing-<id>") whose
@@ -1043,7 +1076,7 @@ const FOOD_GROUPS = [
   ['epicerie', 'Épicerie & assaisonnement']];
 const GROUP_IDS = {};
 Object.entries({
-  viande:'boeuf-hache boeuf-braiser steak-hache veau lardons jambon saucisse chorizo merguez poulet poulet-entier cuisse-poulet pilons-poulet dinde magret',
+  viande:'filet-mignon boeuf-hache boeuf-braiser steak-hache veau lardons jambon saucisse chorizo merguez poulet poulet-entier cuisse-poulet pilons-poulet dinde magret',
   poisson:'saumon saumon-fume cabillaud thon crevettes moules',
   oeufs:'oeuf',
   legumineuse:'pois-chiches haricots-rouges haricots-blancs lentilles-corail lentilles-vertes pois-casses tofu',
@@ -1092,7 +1125,7 @@ window.foyerDebug = { profileOf:r => profileOf(r) }; // lets tests inspect how a
 const proteinLabel = pr => pr.kinds.length ? pr.kinds.join(' + ') : 'sans protéine';
 // Meat and fish families, read from a recipe's ingredients (bank ids first, then the ingredient's name)
 const PROTEIN_IDS = { 'boeuf-hache':['bœuf'], 'boeuf-braiser':['bœuf'], 'steak-hache':['bœuf'], veau:['veau'],
-  lardons:['porc'], jambon:['porc'], saucisse:['porc'], chorizo:['porc'], merguez:['agneau'],
+  lardons:['porc'], jambon:['porc'], 'filet-mignon':['porc'], saucisse:['porc'], chorizo:['porc'], merguez:['agneau'],
   poulet:['volaille'], 'poulet-entier':['volaille'], 'cuisse-poulet':['volaille'], 'pilons-poulet':['volaille'], dinde:['volaille'], magret:['canard'],
   saumon:['poisson'], 'saumon-fume':['poisson'], cabillaud:['poisson'], thon:['poisson'], crevettes:['fruits de mer'], moules:['fruits de mer'] };
 const PROTEIN_WORDS = [[/poulet|dinde|volaille|pintade/i, 'volaille'], [/\bb(œ|oe)uf|steak/i, 'bœuf'], [/\bveau\b/i, 'veau'],
@@ -1219,7 +1252,7 @@ function saveMeal(date, slot, d, keepOpen){
   const data = rec
     ? { date, slot, recipeId:rec.id, title:rec.title, cook:d.cook||'', ingredients:'', steps:'', link:'', createdAt:prev.createdAt||Date.now() }
     : { date, slot, recipeId:'', title:d.title.trim(), cook:d.cook||'', ingredients:d.ingredients||'', steps:d.steps||'', link:(d.link||'').trim(), createdAt:prev.createdAt||Date.now() };
-  state.editMeal = keepOpen ? { date, slot, recipeId:data.recipeId } : null;
+  state.editMeal = keepOpen ? { date, slot, recipeId:data.recipeId } : null; state.mealQuery = '';
   setDoc('meals', key, data);
   if ((prev.recipeId||'') !== (data.recipeId||'')) {
     const n = syncShopping([{ key, recipe:rec, date, force:true }]);
@@ -1613,6 +1646,7 @@ const FORMS = {
 document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
   e.preventDefault();
+  if (document.activeElement && document.activeElement.classList.contains('meal-q')) { const first = f.querySelector('[data-act=meal-pick]'); if (first) first.click(); return; }
   const d = Object.fromEntries(new FormData(f));
   const kind = f.dataset.form;
   if (kind !== 'config' && kind !== 'meal' && kind !== 'recipe' && kind !== 'shoppay' && kind !== 'login') { f.reset(); const first = f.querySelector('input[type=text]'); if (first) first.focus(); }
@@ -1627,6 +1661,7 @@ document.addEventListener('input', e => {
   const el = e.target;
   if (el.id === 'f-rq') { state.recipeQuery = el.value; render(); return; }
   if (el.id === 'f-iq') { state.ingQuery = el.value; render(); return; }
+  if (el.classList && el.classList.contains('meal-q')) { state.mealQuery = el.value; render(); return; }
   // payment split: keep the two shares adding up to the total
   if (['f-pay-total', 'f-pay-a', 'f-pay-b'].includes(el.id) && state.shopPay.payer === 'both') {
     const t = num(document.getElementById('f-pay-total').value), a = document.getElementById('f-pay-a'), b = document.getElementById('f-pay-b');
@@ -1705,8 +1740,15 @@ document.addEventListener('click', e => {
   else if (act === 'askdel') askConfirm(id);
   else if (act === 'delproj') { state.confirmDel = null; delDoc('projects', id); }
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
-  else if (act === 'meal-open') { state.editMeal = { date:el.dataset.date, slot:el.dataset.slot }; state.confirmDel = null; render();
-    const ed = document.getElementById('meal-editor'); if (ed) { ed.scrollIntoView({ block:'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); const i = ed.querySelector('input[name=title]'); if (i && !i.value) i.focus({ preventScroll:true }); } }
+  else if (act === 'meal-open') { state.editMeal = { date:el.dataset.date, slot:el.dataset.slot }; state.mealQuery = ''; state.confirmDel = null; render(true);
+    const ed = document.getElementById('meal-editor'); if (ed) { ed.scrollIntoView({ block:'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); const i = ed.querySelector('.meal-q') || ed.querySelector('input[name=title]'); if (i && !i.value) i.focus({ preventScroll:true }); } }
+  else if (act === 'meal-pick') { const f = el.closest('form'); const cook = (f.querySelector('select[name=cook]') || {}).value || '';
+    state.mealQuery = ''; saveMeal(f.dataset.date, f.dataset.slot, { recipeId:id, cook }, true); }
+  else if (act === 'meal-search') { state.editMeal = { ...state.editMeal, search:true }; state.mealQuery = ''; render(true);
+    const q = document.querySelector('#meal-editor .meal-q'); if (q) q.focus(); }
+  else if (act === 'meal-search-cancel') { state.editMeal = { ...state.editMeal, search:false }; state.mealQuery = ''; render(true); }
+  else if (act === 'meal-free') { state.editMeal = { ...state.editMeal, free:true, recipeId:'' }; render(true);
+    const t = document.querySelector('#meal-editor input[name=title]'); if (t) t.focus(); }
   else if (act === 'meal-close') { state.editMeal = null; render(); }
   else if (act === 'meal-del') { state.confirmDel = null; state.editMeal = null; const m = state.meals.find(x => x.id === id);
     if (m && m.recipeId) syncShopping([{ key:id, recipe:null, date:m.date }]);
@@ -1771,7 +1813,7 @@ const LOGIN_ERRORS = {
   'auth/too-many-requests':'Trop d’essais. Patientez quelques minutes puis réessayez.',
   'auth/network-request-failed':'Pas de connexion internet. Vérifiez le réseau et réessayez.',
   'auth/user-disabled':'Ce compte a été désactivé dans Firebase.' };
-async function startLocal(){ state.mode = 'local'; loadLocal(); if (!state.recipes.length) await loadSeed(); render(); }
+async function startLocal(){ state.mode = 'local'; loadLocal(); if (!state.recipes.length) await loadSeed(); render(); applySeedUpdates(); }
 async function startFirebase(){
   state.mode = 'loading'; render();
   try { if (!window.firebase) for (const m of ['app', 'auth', 'firestore']) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${m}-compat.js`); }
@@ -1822,6 +1864,38 @@ function vLogin(){
   </div>`;
 }
 
+/* ---------- recipes added after the starter bank ----------
+   On opening, each item below is written once if it is missing; its id is then remembered
+   in config/seed, so a recipe the couple deletes never comes back. */
+const SEED_UPDATES = {
+  ingredients: [
+    { id:'filet-mignon', name:'Filet mignon de porc', cat:'Viandes & poissons', unit:'g', group:'viande' },
+  ],
+  recipes: [
+    { id:'filet-mignon-miel-thym', title:'Filet mignon au miel et au thym, légumes rôtis', tags:'four, classique', price:2, link:'', createdAt:500,
+      items:[ { ingId:'filet-mignon', name:'Filet mignon de porc', qty:500, unit:'g' }, { ingId:'pomme-de-terre', name:'Pomme de terre', qty:400, unit:'g' },
+        { ingId:'carotte', name:'Carotte', qty:3, unit:'pièce' }, { ingId:'oignon-rouge', name:'Oignon rouge', qty:1, unit:'pièce' },
+        { ingId:'miel', name:'Miel', qty:2, unit:'c. à soupe' }, { ingId:'thym', name:'Thym', qty:1, unit:'botte' },
+        { ingId:'ail', name:'Ail', qty:3, unit:'gousse' }, { ingId:'huile-olive', name:"Huile d'olive", qty:3, unit:'c. à soupe' } ],
+      steps:"1. Préchauffer le four à 200 °C. Couper les pommes de terre en quartiers, les carottes en bâtonnets et l'oignon rouge en quartiers.\n2. Les mélanger dans un plat avec 2 c. à soupe d'huile, l'ail en chemise, la moitié du thym, sel et poivre. Enfourner 15 min.\n3. Pendant ce temps, saler et poivrer le filet mignon, puis le saisir 5 min à la poêle dans le reste d'huile pour le dorer sur toutes les faces.\n4. Le poser sur les légumes, le badigeonner de miel et parsemer du reste de thym.\n5. Cuire 25 min à 200 °C en l'arrosant une fois de son jus. Laisser reposer 5 min sous une feuille d'aluminium avant de trancher." },
+  ],
+};
+let seedUpdating = false;
+async function applySeedUpdates(){
+  if (seedUpdating) return; seedUpdating = true;
+  try {
+    let done = [];
+    if (db) { const snap = await db.doc('config/seed').get(); done = (snap.exists && snap.data().done) || []; }
+    else { try { done = JSON.parse(localStorage.getItem('foyer-a-deux-seed') || '[]'); } catch {} }
+    const add = [];
+    SEED_UPDATES.ingredients.forEach(({ id, ...body }) => { if (done.includes(id)) return; if (!ingById(id)) setDoc('ingredients', id, body); add.push(id); });
+    SEED_UPDATES.recipes.forEach(({ id, ...body }) => { if (done.includes(id)) return; if (!state.recipes.some(r => r.id === id)) setDoc('recipes', id, body); add.push(id); });
+    if (!add.length) return;
+    const all = [...done, ...add];
+    if (db) await db.doc('config/seed').set({ done:all });
+    else { try { localStorage.setItem('foyer-a-deux-seed', JSON.stringify(all)); } catch {} }
+  } catch {} finally { seedUpdating = false; }
+}
 /* ---------- who is signed in: a small cat in the corner ----------
    Matched on a SHA-256 fingerprint of the account e-mail, so the published page
    never contains the addresses themselves. */
@@ -1876,7 +1950,7 @@ function connect(d){
   db = d;
   const pending = new Set([...COLS, 'config', 'maison']);
   const timer = setTimeout(() => { if (pending.size && state.mode === 'loading') { state.mode = 'stale'; scheduleRender(); } }, 10000);
-  const settle = (k, snap) => { if (!snap.metadata.fromCache && pending.delete(k) && !pending.size) { clearTimeout(timer); if (state.mode !== 'error') state.mode = 'shared'; } };
+  const settle = (k, snap) => { if (!snap.metadata.fromCache && pending.delete(k) && !pending.size) { clearTimeout(timer); if (state.mode !== 'error') state.mode = 'shared'; applySeedUpdates(); } };
   const onErr = k => () => { pending.delete(k); clearTimeout(timer); state.mode = 'error'; scheduleRender(); };
   COLS.forEach(c => listen(db.collection(c), s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
   listen(db.doc('config/couple'), s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
