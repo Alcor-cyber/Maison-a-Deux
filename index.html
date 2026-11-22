@@ -198,7 +198,11 @@ details[open] summary::before{content:"▾ "}
 .shop-tools{display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 16px}
 #update-banner{position:fixed;left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 32px));justify-content:space-between;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:70;display:flex;align-items:center;gap:12px;
   background:var(--fg);color:var(--bg);border-radius:var(--r);padding:8px 8px 8px 14px;font-size:.88rem;box-shadow:0 10px 30px rgb(0 0 0 / .25);max-width:calc(100% - 32px)}
-#update-banner .btn{background:var(--accent);color:var(--accent-fg);flex:none}
+#update-banner{flex-direction:column;align-items:stretch;gap:8px;padding:12px 12px 12px 16px}
+#update-banner .btn{background:var(--accent);color:var(--accent-fg);flex:none;align-self:flex-end}
+#update-banner .ub-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#update-banner .icon-btn{color:var(--bg);width:28px;height:28px}
+#update-banner .ub-notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.84rem;opacity:.9;max-height:40vh;overflow:auto}
 .timer-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none;align-self:center}
 .timer-btn:hover{color:var(--fg);border-color:var(--accent)}
 .timer-btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
@@ -245,6 +249,8 @@ details[open] summary::before{content:"▾ "}
 .edit-bar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:8;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   background:var(--fg);color:var(--bg);border-radius:var(--r);padding:10px 12px 10px 16px;margin-bottom:14px;font-size:.88rem;box-shadow:0 6px 20px rgb(0 0 0 / .15)}
 .edit-bar .btn{background:var(--bg);color:var(--fg)}
+.edit-done{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:8;display:flex;justify-content:flex-end;margin:-4px 0 8px;pointer-events:none}
+.edit-done .btn{pointer-events:auto;box-shadow:0 4px 14px rgb(0 0 0 / .15)}
 .edit-mode .meal{touch-action:none;cursor:grab}
 .edit-mode .meal[data-filled]{animation:jiggle .26s ease-in-out infinite alternate}
 .edit-mode .mday:nth-child(even) .meal[data-filled]{animation-delay:-.13s}
@@ -1268,7 +1274,7 @@ function vMenus(){
   <div class="wk-tabs" role="tablist">${tabs}</div>
   ${bar}
   ${weekBalance(days)}
-  ${state.mealEdit ? `<div class="edit-bar" role="status"><span>Faites glisser un plat vers un autre jour, ou touchez <b>×</b> pour le supprimer. Pour changer de semaine, amenez le plat sur l’onglet de la semaine.</span><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
+  ${state.mealEdit ? `<div class="edit-done"><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
   <div class="weeks ${state.mealEdit ? 'edit-mode' : ''}">${grid}</div>
   ${state.editMeal ? `<div class="sheet-wrap"><div class="sheet-back" data-act="meal-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Repas">${mealEditor()}</div></div>` : ''}`;
 }
@@ -1627,7 +1633,7 @@ document.addEventListener('pointercancel', e => { cancelPress(); if (drag) endDr
 // the click that ends a long press must not open the meal; a tap outside the meals leaves edit mode
 document.addEventListener('click', e => {
   if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); return; }
-  if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-bar, .wk-tabs, .more')) { state.mealEdit = false; render(); }
+  if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-done, .wk-tabs, .more')) { state.mealEdit = false; render(); }
 }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.weeks .meal')) e.preventDefault(); });
 document.addEventListener('keydown', e => {
@@ -2405,21 +2411,27 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795361151';
+const APP_BUILD = '1795361700';
+// What this version brings: shown by the « Nouvelle version » banner of the copies still open (keep one line)
+const APP_NOTES = ["Le bandeau de mise à jour indique maintenant les nouveautés", "Menus : en mode édition, plus de bandeau explicatif, juste un bouton « Terminé »", "Réglages : guide du raccourci minuteur de l’iPhone corrigé (action « Démarrer le minuteur » seule)", "Menus : la fiche d’un plat affiche « Afficher la recette » (vert) et « Cuisiner » (ambre), et « Qui cuisine » s’enregistre tout seul"];
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
   try {
     const res = await fetch(location.pathname + '?check=' + Date.now(), { cache:'no-store' }); if (!res.ok) return;
-    const m = (await res.text()).match(/const APP_BUILD = '(\d+)'/);
-    if (m && m[1] !== APP_BUILD) { newBuild = m[1]; showUpdateBanner(); }
+    const text = await res.text(); const m = text.match(/const APP_BUILD = '(\d+)'/);
+    if (m && m[1] !== APP_BUILD) { newBuild = m[1];
+      let notes = []; const n = text.match(/const APP_NOTES = (\[.*?\]);/); if (n) { try { notes = JSON.parse(n[1]); } catch {} }
+      showUpdateBanner(notes); }
   } catch {}
 }
-function showUpdateBanner(){
+function showUpdateBanner(notes){
   if (document.getElementById('update-banner')) return;
   const b = document.createElement('div'); b.id = 'update-banner'; b.setAttribute('role', 'status');
-  b.innerHTML = '<span>Nouvelle version disponible</span><button class="btn sm" type="button">Mettre à jour</button>';
-  b.querySelector('button').addEventListener('click', () => { location.replace(location.pathname + '?v=' + newBuild + location.hash); });
+  const list = (notes || []).slice(0, 6).map(t => `<li>${esc(String(t))}</li>`).join('');
+  b.innerHTML = `<div class="ub-head"><b>Nouvelle version disponible</b><button class="icon-btn" type="button" data-later aria-label="Plus tard">×</button></div>${list ? `<ul class="ub-notes">${list}</ul>` : ''}<button class="btn sm" type="button" data-update>Mettre à jour</button>`;
+  b.querySelector('[data-update]').addEventListener('click', () => { location.replace(location.pathname + '?v=' + newBuild + location.hash); });
+  b.querySelector('[data-later]').addEventListener('click', () => b.remove());
   document.body.appendChild(b);
 }
 setTimeout(checkForUpdate, 4000);
