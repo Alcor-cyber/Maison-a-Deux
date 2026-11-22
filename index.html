@@ -372,6 +372,38 @@ body[data-space="choix"] .main{padding-block:0}
 .choice-meta{margin-top:auto;font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 @media (max-width:640px){.choices{grid-template-columns:minmax(0,1fr)} .choice{min-height:0}}
 
+/* ---------- cooking mode ---------- */
+.cook{position:fixed;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;overflow:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-left,0px))}
+.cook-top{display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.cook-title{flex:1;min-width:0;display:flex;flex-direction:column}
+.cook-title b{font-family:var(--font-display);font-size:1.05rem;overflow-wrap:anywhere}
+.cook-title span{font-size:.8rem;color:var(--muted)}
+.cook-prog{height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;max-width:760px;width:100%;margin:10px auto 0}
+.cook-prog span{display:block;height:100%;background:var(--accent);transition:width .25s}
+.cook-ings{list-style:none;padding:12px;margin:12px auto 0;max-width:760px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;gap:2px}
+.cook-ings label{display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer}
+.cook-ings span{flex:1}
+.cook-ings input:checked ~ span{text-decoration:line-through;color:var(--muted)}
+.cook-ings b{font-variant-numeric:tabular-nums}
+.cook-step{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;max-width:760px;width:100%;margin:0 auto;padding:24px 0}
+.cook-step > p:first-child{font-family:var(--font-display);font-size:clamp(1.45rem,5vw,2.2rem);line-height:1.3;font-weight:500;text-wrap:pretty}
+.cook-timers{display:flex;gap:10px;flex-wrap:wrap}
+.cook-timers .btn{min-height:52px;font-size:1.1rem;padding:10px 22px}
+.cook-timer{display:flex;align-items:center;gap:12px;max-width:760px;width:100%;margin:0 auto 12px;background:var(--fg);color:var(--bg);border-radius:var(--r);padding:10px 10px 10px 16px}
+.cook-timer[hidden]{display:none}
+.cook-timer span{flex:1;font-size:.85rem;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cook-timer b{font-family:var(--font-display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.cook-timer .icon-btn{color:var(--bg)}
+.cook-timer.done{background:var(--danger);animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{to{filter:brightness(1.15)}}
+.cook-nav{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.cook-nav .btn{min-height:56px;font-size:1.05rem}
+.cook-nav .btn[disabled]{opacity:.4;cursor:default}
+.cook-btn{align-self:flex-start}
+.sc-help summary{color:var(--accent)}
+.sc-help ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.cook-timer.done{animation:none}}
 /* ---------- Menus tab ---------- */
 .wk-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:12px}
 .wk-tab{display:flex;flex-direction:column;align-items:center;gap:1px;border:0;border-radius:9px;background:transparent;padding:8px 6px;cursor:pointer;color:var(--muted);font:inherit}
@@ -849,6 +881,88 @@ function vRecurring(){
     </form>
   </section>`;
 }
+/* ---------- cooking mode ----------
+   Full-screen, one step at a time, screen kept on. Durations written in a step
+   (« 25 min », « 1 h 15 ») become timer buttons: on an iPhone with the « Minuteur Foyer »
+   shortcut they start the Clock app's timer (Shortcuts URL scheme), otherwise an in-app
+   countdown rings at the end. */
+const SHORTCUT_KEY = 'foyer-a-deux-shortcut';
+const shortcutPref = () => { try { return JSON.parse(localStorage.getItem(SHORTCUT_KEY) || 'null') || { on:false, name:'Minuteur Foyer' }; } catch { return { on:false, name:'Minuteur Foyer' }; } };
+const saveShortcutPref = v => { try { localStorage.setItem(SHORTCUT_KEY, JSON.stringify(v)); } catch {} };
+// every duration in a step, in minutes: « 25 min », « 20 à 25 min », « 1 h 15 », « 2 h », « 30 s » is ignored
+function durationsIn(text){
+  const out = []; const re = /(\d+)\s*h(?:eures?)?\s*(\d{1,2})?(?!\w)|(\d+)(?:\s*(?:à|-)\s*\d+)?\s*(?:min(?:utes?)?)\b/gi; let m;
+  while ((m = re.exec(text))) { const min = m[1] ? (+m[1]) * 60 + (+(m[2] || 0)) : +m[3]; if (min > 0 && min <= 600 && !out.includes(min)) out.push(min); }
+  return out;
+}
+const fmtDur = min => min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ' ' + String(min % 60).padStart(2, '0') : ''}` : `${min} min`;
+function startTimer(min, label){
+  const sc = shortcutPref();
+  if (sc.on && isIOS()) { // the iPhone's own timer, through the user's shortcut
+    const url = `shortcuts://run-shortcut?name=${encodeURIComponent(sc.name || 'Minuteur Foyer')}&input=text&text=${min}`;
+    if (window.foyerDebug) window.foyerDebug.lastShortcut = url; // lets tests see the call
+    location.href = url;
+    toast(`Minuteur de l’iPhone : ${fmtDur(min)}`); return;
+  }
+  try { cookAudio = cookAudio || new (window.AudioContext || window.webkitAudioContext)(); cookAudio.resume(); } catch {}
+  state.cookTimer = { end:Date.now() + min * 60000, label, min }; paintCookTimer(); toast(`Minuteur lancé : ${fmtDur(min)}`);
+}
+let cookAudio = null, cookTick = null;
+function ring(){
+  try { const a = cookAudio; if (!a) return; [0, .35, .7, 1.4, 1.75, 2.1].forEach(t => { const o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = 880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.0001, a.currentTime + t);
+    g.gain.exponentialRampToValueAtTime(.3, a.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .25); o.start(a.currentTime + t); o.stop(a.currentTime + t + .3); }); } catch {}
+  if (navigator.vibrate) { try { navigator.vibrate([300, 150, 300, 150, 300]); } catch {} }
+}
+function paintCookTimer(){
+  clearInterval(cookTick);
+  const draw = () => {
+    const el = document.getElementById('cook-timer'); const t = state.cookTimer;
+    if (!t) { if (el) el.hidden = true; clearInterval(cookTick); return; }
+    const left = Math.max(0, Math.round((t.end - Date.now()) / 1000));
+    if (el) { el.hidden = false; el.querySelector('b').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; el.querySelector('span').textContent = t.label || 'Minuteur'; el.classList.toggle('done', !left); }
+    if (!left && !t.rang) { t.rang = true; ring(); toast('⏱ Minuteur terminé'); }
+  };
+  draw(); cookTick = setInterval(draw, 500);
+}
+function vCook(){
+  const c = state.cook; const r = state.recipes.find(x => x.id === c.id); if (!r) return '';
+  const steps = (r.steps || '').split('\n').map(x => x.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean);
+  const n = steps.length || 1, i = Math.min(c.step, n - 1), text = steps[i] || 'Pas d’étapes notées pour cette recette.';
+  const durs = durationsIn(text);
+  const sc = shortcutPref();
+  return `<div class="cook" role="dialog" aria-modal="true" aria-label="Mode cuisine : ${esc(r.title)}">
+    <div class="cook-top"><button class="icon-btn" data-act="cook-close" aria-label="Quitter le mode cuisine">×</button>
+      <div class="cook-title"><b>${esc(r.title)}</b><span>Étape ${i + 1} sur ${n}</span></div>
+      <button class="btn ghost sm" data-act="cook-ings" aria-pressed="${!!c.ings}">Ingrédients</button></div>
+    <div class="cook-prog"><span style="width:${(i + 1) / n * 100}%"></span></div>
+    ${c.ings ? `<ul class="cook-ings">${(r.items || []).map((it, k) => `<li><label><input type="checkbox" class="chk" data-act="cook-ing" data-k="${k}" ${c.done && c.done[k] ? 'checked' : ''}><span>${esc(ingName(it))}</span><b>${esc(qtyStr(it.qty, it.unit))}</b></label></li>`).join('')}</ul>` : ''}
+    <div class="cook-step"><p>${esc(text)}</p>
+      ${durs.length ? `<div class="cook-timers">${durs.map(m => `<button class="btn" data-act="cook-timer" data-min="${m}">⏱ ${fmtDur(m)}</button>`).join('')}</div>
+        <p class="hint">${sc.on && isIOS() ? 'Lance le minuteur de l’iPhone' : isIOS() ? 'Minuteur dans l’appli · <a href="#reglages" data-act="cook-close">Utiliser le minuteur de l’iPhone</a>' : 'Minuteur dans l’appli, avec une sonnerie à la fin'}</p>` : ''}</div>
+    <div class="cook-timer" id="cook-timer" hidden><span></span><b></b><button class="icon-btn" data-act="cook-timer-stop" aria-label="Arrêter le minuteur">×</button></div>
+    <div class="cook-nav"><button class="btn ghost" data-act="cook-step" data-d="-1" ${i ? '' : 'disabled'}>‹ Précédent</button>
+      ${i < n - 1 ? '<button class="btn" data-act="cook-step" data-d="1">Suivant ›</button>' : '<button class="btn" data-act="cook-close">Bon appétit !</button>'}</div>
+  </div>`;
+}
+function openCook(id){ state.cook = { id, step:0, ings:false, done:{} }; state.editMeal = null; render(); keepAwake(true); }
+function vTimerCard(){
+  const sc = shortcutPref();
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px">
+    <h2>Minuteur de l’iPhone</h2>
+    <p class="sub">En mode cuisine, les boutons ⏱ peuvent lancer le minuteur de l’appli Horloge, qui sonne même téléphone verrouillé. Il faut créer une fois un raccourci sur chaque iPhone.</p>
+    <label class="toggle" style="color:var(--fg)"><input type="checkbox" class="chk" id="f-sc-on" ${sc.on ? 'checked' : ''}> Utiliser le minuteur de l’iPhone sur cet appareil</label>
+    <div class="field" style="max-width:320px"><label for="f-sc-name">Nom du raccourci</label><input id="f-sc-name" type="text" value="${esc(sc.name || 'Minuteur Foyer')}"></div>
+    <details class="sc-help"><summary>Créer le raccourci (1 minute)</summary>
+      <ol><li>Ouvrez l’appli <b>Raccourcis</b> de l’iPhone, onglet <b>Raccourcis</b>, puis <b>+</b> en haut à droite.</li>
+        <li>Touchez le nom en haut et appelez-le <b>${esc(sc.name || 'Minuteur Foyer')}</b>.</li>
+        <li><b>Ajouter une action</b> : cherchez « <b>Obtenir les nombres de l’entrée</b> » et ajoutez-la.</li>
+        <li>Ajoutez l’action « <b>Démarrer le minuteur</b> » (Horloge). Touchez la durée, choisissez la variable <b>Nombres</b>, et l’unité <b>minutes</b>.</li>
+        <li>Touchez <b>OK</b>. C’est tout : revenez ici et touchez « Tester ».</li></ol>
+      <p class="hint">La première fois, iOS demande d’autoriser l’ouverture du raccourci : touchez <b>Ouvrir</b> (ou <b>Toujours autoriser</b>).</p></details>
+    <div><button class="btn ghost sm" data-act="sc-test">Tester avec 1 minute</button></div>
+  </section>`;
+}
 function vBudget(){
   const m = state.month || curMonth();
   const b = balanceText(balance());
@@ -1044,6 +1158,7 @@ function vReglages(){
       <div><button class="btn" type="submit">Enregistrer</button></div>
     </form>
     ${usingFirebase && state.user ? vNotifCard() : ''}
+    ${vTimerCard()}
     <section class="card"><h2>Synchronisation</h2><p class="sub" style="margin-top:6px">${modeTxt}</p>
       ${state.user ? '<button class="btn ghost" data-act="logout" style="margin-top:12px">Se déconnecter</button>' : ''}</section>
     ${exCount ? `<section class="card"><h2>Exemples</h2><p class="sub" style="margin:6px 0 12px">${exCount} élément${exCount>1?'s':''} marqué${exCount>1?'s':''} « exemple » ont été ajoutés pour vous montrer l’outil.</p>
@@ -1098,7 +1213,8 @@ function mealEditor(){
         ${rec.link && /^https?:\/\//i.test(rec.link) ? `<p style="margin-top:8px"><a href="${esc(rec.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a></p>` : ''}</div>
     </div>
     <p class="hint">${rid === (m.recipeId||'') && m.recipeId ? '✓ Les ingrédients de cette recette sont dans la liste de courses.' : 'Les ingrédients s’ajoutent automatiquement à la liste de courses.'}
-      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>` : !free ? '' : `
+      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>
+    <button type="button" class="btn cook-btn" data-act="cook-open" data-id="${rec.id}">Cuisiner, étape par étape</button>` : !free ? '' : `
     <div class="field"><label for="f-meal-title-${k}">Plat</label><input id="f-meal-title-${k}" name="title" type="text" placeholder="Ex. Lasagnes aux légumes" value="${esc(m.recipeId ? '' : (m.title||''))}"></div>
     <div class="cols">
       <div class="field"><label for="f-meal-ing-${k}">Ingrédients (un par ligne)</label><textarea id="f-meal-ing-${k}" name="ingredients" placeholder="500 g de pâtes à lasagnes&#10;2 courgettes&#10;Mozzarella">${esc(m.ingredients||'')}</textarea></div>
@@ -1281,7 +1397,7 @@ function profileOf(r){
   return { base, fam, vegProt, kinds:[...fam, ...vegProt], veg, hasProtein:fam.length + vegProt.length > 0,
            fish:fam.some(f => f === 'poisson' || f === 'fruits de mer') };
 }
-window.foyerDebug = { profileOf:r => profileOf(r), tempOf:r => tempOf(r) }; // lets tests inspect how a dish is classified
+window.foyerDebug = { profileOf:r => profileOf(r), tempOf:r => tempOf(r), durationsIn:t => durationsIn(t) }; // lets tests inspect how a dish is classified
 // hot or cold dish: the recipe's own choice, else read from its name and tags
 // cold: the name starts with a cold dish (« Salade… », « Wraps… ») or the recipe is tagged « salade »;
 // a side salad (« Quiche lorraine et salade ») does not make a dish cold
@@ -1511,7 +1627,9 @@ document.addEventListener('click', e => {
   if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-bar, .wk-tabs, .more')) { state.mealEdit = false; render(); }
 }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.weeks .meal')) e.preventDefault(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.editMeal && !state.mealEdit) { state.editMeal = null; state.mealQuery = ''; render(); return; }
+document.addEventListener('keydown', e => {
+  if (state.cook) { if (e.key === 'ArrowRight') document.querySelector('[data-act=cook-step][data-d="1"]')?.click(); else if (e.key === 'ArrowLeft') document.querySelector('[data-act=cook-step][data-d="-1"]')?.click(); else if (e.key === 'Escape') { state.cook = null; render(); } return; }
+  if (e.key === 'Escape' && state.editMeal && !state.mealEdit) { state.editMeal = null; state.mealQuery = ''; render(); return; }
   if (e.key === 'Escape' && state.mealEdit) { if (drag) endDrag(e, false); state.mealEdit = false; render(); } });
 function startDrag(e, cell){
   const r = cell.getBoundingClientRect();
@@ -1591,7 +1709,7 @@ function vRecettes(){
   const pf = state.recipePrice || 0;
   const list = state.recipes.slice().sort((x,y) => (x.title||'').localeCompare(y.title||'', 'fr'))
     .filter(r => !pf || (+r.price||0) === pf)
-    .filter(r => !q || (r.title||'').toLowerCase().includes(q) || (r.tags||'').toLowerCase().includes(q) || (r.items||[]).some(it => ingName(it).toLowerCase().includes(q)));
+    .filter(r => !q || norm(q).split(/\s+/).filter(Boolean).every(w => norm(r.title).includes(w) || norm(r.tags).includes(w) || norm(tempOf(r)).includes(w) || (r.items||[]).some(it => norm(ingName(it)).includes(w)))); // accents and word order do not matter
   const pchip = (v, l) => `<button class="chip" data-act="rec-price" data-v="${v}" aria-pressed="${pf===v}">${l}</button>`;
   const planned = id => state.meals.filter(m => m.recipeId === id && m.date >= t).length;
   return `
@@ -1607,7 +1725,7 @@ function vRecettes(){
       <div class="meta"><span>${(r.items||[]).length} ingrédient${(r.items||[]).length>1?'s':''}</span>${(r.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}${n?`<span class="rec-tag">Prévue ${n} fois</span>`:''}</div>
       ${(() => { const pr = profileOf(r); return `<div class="nutri"><span class="nt ${pr.hasProtein ? '' : 'warn'}">${esc(proteinLabel(pr))}</span>${pr.base ? `<span class="nt">${BASES[pr.base]}</span>` : ''}<span class="nt ${pr.veg ? '' : 'warn'}">${pr.veg ? pr.veg + ' légume' + (pr.veg > 1 ? 's' : '') : 'sans légume'}</span><span class="nt ${tempOf(r) === 'froid' ? 'cold' : 'hot'}">${tempOf(r) === 'froid' ? 'Plat froid' : 'Plat chaud'}</span></div>`; })()}
       <p class="desc">${esc((r.items||[]).map(ingName).join(', '))}</p>
-      <div class="acts"><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
+      <div class="acts"><button class="btn sm" data-act="cook-open" data-id="${r.id}">Cuisiner</button><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
         ${state.confirmDel==='rec-'+r.id ? `<button class="btn danger sm" data-act="rec-del" data-id="${r.id}">Confirmer la suppression</button>` : `<button class="btn ghost sm" data-act="askdel" data-id="rec-${r.id}">Supprimer</button>`}</div>
     </article>`; }).join('')}</div>`
   : `<section class="card"><p class="empty">${q || pf ? 'Aucune recette ne correspond à ces critères.' : 'Aucune recette pour l’instant. Créez la première avec « Nouvelle recette ».'}</p>
@@ -1862,7 +1980,8 @@ function render(structural){
   document.getElementById('nav').innerHTML = (sp === 'maison' ? MROUTES : ROUTES).map(([k,l,s]) =>`<a href="#${k}" class="${k==='reglages'?'nav-settings':''}" ${k===r||SUB[r]===k?'aria-current="page"':''}>${icon(k)}<span class="nav-long">${l}</span><span class="nav-short">${s||l}</span></a>`).join('');
   const notice = state.mode==='stale' ? '<p class="notice">La connexion au stockage partagé est lente : les données affichées ne sont peut-être pas à jour.</p>'
     : state.mode==='error' ? '<p class="notice">Le stockage partagé ne répond plus. Rechargez la page pour vous reconnecter.</p>' : '';
-  view.innerHTML = notice + VIEWS[r]();
+  view.innerHTML = notice + VIEWS[r]() + (state.cook ? vCook() : '');
+  if (state.cook && state.cookTimer) paintCookTimer();
   for (const [id, v] of Object.entries(drafts)) { const el = document.getElementById(id); if (el && el.closest('form[data-form]')) el.value = v; }
   if (focus) { const el = document.getElementById(focus.id); if (el) { el.focus(); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} } }
   const [cls, txt] = { shared:['ok','Partagé en direct avec votre partenaire'], local:['warn','Enregistré sur cet appareil uniquement'],
@@ -1870,8 +1989,8 @@ function render(structural){
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
   if (typeof resolveMeCat === 'function') resolveMeCat();
-  document.body.classList.toggle('sheet-open', !!(state.editMeal && route() === 'menus'));
-  if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses'); }
+  document.body.classList.toggle('sheet-open', !!((state.editMeal && route() === 'menus') || state.cook));
+  if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses' || !!state.cook); }
 }
 
 /* ---------- events ---------- */
@@ -1995,6 +2114,9 @@ document.addEventListener('change', e => {
   if (el.id === 'f-remember') { if (!el.checked) remember(''); return; }
   if (act === 'bri') { updDoc('devices', id, { bri:+el.value }); return; }
   if (act === 'ent') { updDoc('devices', id, { entity:el.value.trim() }); return; }
+  if (act === 'cook-ing') { state.cook.done = { ...(state.cook.done || {}), [el.dataset.k]:el.checked }; return; }
+  if (el.id === 'f-sc-on') { saveShortcutPref({ ...shortcutPref(), on:el.checked }); toast(el.checked ? 'Les boutons ⏱ lanceront le minuteur de l’iPhone' : 'Les boutons ⏱ utiliseront le minuteur de l’appli'); return; }
+  if (el.id === 'f-sc-name') { saveShortcutPref({ ...shortcutPref(), name:el.value.trim() || 'Minuteur Foyer' }); render(); return; }
   if (act === 'pref-mute') { setPrefs({ ...state.prefs, mute:{ ...(state.prefs.mute || {}), [el.dataset.k]:!el.checked } }); return; }
   if (act === 'mstep') { const steps = { ...(state.maisonCfg.steps || {}), [el.dataset.k]:el.checked }; setMaisonCfg({ ...state.maisonCfg, steps }); return; }
   if (act === 'meal-rec') {
@@ -2060,6 +2182,13 @@ document.addEventListener('click', e => {
   else if (act === 'delproj') { state.confirmDel = null; delDoc('projects', id); }
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
   else if (act === 'meal-x') { deleteMealKey(id); }
+  else if (act === 'cook-open') { openCook(id); }
+  else if (act === 'cook-close') { state.cook = null; render(); keepAwake(route() === 'en-courses'); }
+  else if (act === 'cook-step') { state.cook.step = Math.max(0, state.cook.step + (+el.dataset.d)); render(); const c = document.querySelector('.cook'); if (c) c.scrollTop = 0; }
+  else if (act === 'cook-ings') { state.cook.ings = !state.cook.ings; render(); }
+  else if (act === 'cook-timer') { const r = state.recipes.find(x => x.id === state.cook.id); startTimer(+el.dataset.min, r ? r.title : ''); }
+  else if (act === 'cook-timer-stop') { state.cookTimer = null; paintCookTimer(); }
+  else if (act === 'sc-test') { const v = shortcutPref(); if (!v.on) { toast('Cochez d’abord « Utiliser le minuteur de l’iPhone ».'); } else if (!isIOS()) { toast('Ce test ne marche que sur un iPhone.'); } else startTimer(1, 'Test'); }
   else if (act === 'menu-week') { state.menuWeek = +el.dataset.v; state.confirmDel = null; state.editMeal = null; render(); }
   else if (act === 'meal-edit-on') { state.mealEdit = true; state.editMeal = null; render(); }
   else if (act === 'meal-edit-done') { state.mealEdit = false; render(); }
@@ -2269,7 +2398,7 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795359939';
+const APP_BUILD = '1795360392';
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
