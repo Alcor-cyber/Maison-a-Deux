@@ -85,6 +85,10 @@ nav svg{width:20px;height:20px;flex:none}
 
 .main{min-width:0;padding-block:28px 48px}
 .mtop{display:none}
+/* tab titles are a watermark: oversized, low contrast, not meant to be read (home and Ma Maison excepted) */
+.head:not(.home) .eyebrow{display:none}
+.head:not(.home) h1{font-size:clamp(2.7rem,8vw,4.8rem);line-height:.92;letter-spacing:-.04em;font-weight:700;
+  color:color-mix(in srgb,var(--fg) 12%,var(--bg));-webkit-user-select:none;user-select:none;margin-left:-.04em}
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
 .eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:4px}
 .sub{color:var(--muted);max-width:60ch}
@@ -356,6 +360,51 @@ body[data-space="choix"] .main{padding-block:0}
 .choice-meta{margin-top:auto;font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 @media (max-width:640px){.choices{grid-template-columns:minmax(0,1fr)} .choice{min-height:0}}
 
+/* ---------- Menus tab ---------- */
+.wk-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:12px}
+.wk-tab{display:flex;flex-direction:column;align-items:center;gap:1px;border:0;border-radius:9px;background:transparent;padding:8px 6px;cursor:pointer;color:var(--muted);font:inherit}
+.wk-tab b{font-size:.92rem;color:inherit}
+.wk-tab span{font-size:.75rem}
+.wk-tab[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 4px rgb(0 0 0 / .08)}
+.wk-bar,.wk-confirm{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.wk-confirm{justify-content:flex-start;background:var(--danger-soft);border-radius:var(--r-sm);padding:8px 10px;font-size:.9rem}
+.wk-actions{display:flex;align-items:center;gap:8px}
+.more{position:relative}
+.more summary{list-style:none;min-width:40px;font-size:1.1rem;letter-spacing:.05em}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before,.more[open] summary::before{content:none}
+.more-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:15;min-width:240px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 12px 30px rgb(0 0 0 / .16);padding:6px;display:flex;flex-direction:column}
+.more-menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:var(--r-sm);font:inherit;color:var(--fg);cursor:pointer}
+.more-menu button:hover{background:var(--surface-2)}
+.more-menu .danger-item{color:var(--danger)}
+.wk-sum{margin-bottom:12px}
+.wk-sum summary{display:flex;flex-wrap:wrap;gap:6px;cursor:pointer;list-style:none}
+.wk-sum summary::-webkit-details-marker{display:none}
+.wk-sum summary::before,.wk-sum[open] summary::before{content:none}
+.wk-sum p{font-size:.82rem;color:var(--muted);margin-top:8px;line-height:1.6}
+.wk-sum p b{color:var(--fg);margin-right:4px}
+.meal .add{font-size:.85rem;color:var(--muted)}
+.meal.empty-slot{min-height:46px;justify-content:center}
+.meal-t{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meal-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:auto}
+.meal-f .price{font-size:.75rem}
+/* the meal sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet-back{position:absolute;inset:0;background:rgb(0 0 0 / .38);animation:fade .18s ease-out}
+.sheet{position:relative;width:min(680px,100%);max-height:88vh;overflow:auto;border-radius:18px;animation:sheet-in .22s ease-out;overscroll-behavior:contain}
+.sheet .editor{margin:0;border:0;box-shadow:none}
+body.sheet-open{overflow:hidden}
+@keyframes fade{from{opacity:0}}
+@keyframes sheet-in{from{opacity:0;transform:translateY(16px)}}
+@media (max-width:760px){
+  .sheet-wrap{align-items:flex-end;padding:0}
+  .sheet{width:100%;max-height:90vh;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);animation:sheet-up .26s cubic-bezier(.2,.9,.3,1)}
+  .sheet .editor{border-radius:18px 18px 0 0}
+  .sheet::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto -4px}
+  .meal.empty-slot{min-height:40px}
+}
+@keyframes sheet-up{from{transform:translateY(100%)}}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet-back{animation:none}}
 /* ---------- shopping mode ---------- */
 body[data-space="shop"] .side,body[data-space="shop"] .mtop{display:none}
 body[data-space="shop"] .app{grid-template-columns:minmax(0,1fr);max-width:680px}
@@ -658,7 +707,7 @@ function vAccueil(){
   const monthTotal = state.expenses.filter(e => (e.date||'').startsWith(curMonth()) && e.cat !== 'Remboursement').reduce((s,e)=>s+(+e.amount||0),0);
   const proj = state.projects.filter(p => p.status === 'encours');
   return `
-  <div class="head"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${esc(state.config.a)} et ${esc(state.config.b)}</h1></div></div>
+  <div class="head home"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${esc(state.config.a)} et ${esc(state.config.b)}</h1></div></div>
   <div class="dash">
     <section class="card"><div class="card-h"><h2>À faire aujourd'hui</h2><a href="#taches">Toutes les tâches</a></div>
       ${due.length ? `<ul class="list">${due.map(taskRow).join('')}</ul>` : `<p class="empty">Rien d'urgent aujourd'hui.${soon.length?'':' Ajoutez une tâche dans l’onglet Tâches.'}</p>`}
@@ -946,9 +995,9 @@ function mealCell(date, slot, label){
   const m = mealOf(date, slot); const sel = state.editMeal && state.editMeal.date === date && state.editMeal.slot === slot;
   const past = date < today();
   const key = mealKey(date, slot);
-  if (!m) return `<button class="meal empty-slot ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}"><span class="slot">${label}</span><span>${state.mealEdit ? 'Libre' : '+ Ajouter'}</span></button>`;
+  if (!m) return `<button class="meal empty-slot ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}"><span class="add">${state.mealEdit ? label + ' · libre' : '+ ' + label}</span></button>`;
   const hasRec = m.recipeId || (m.ingredients||'').trim() || (m.steps||'').trim() || (m.link||'').trim();
-  return `<button class="meal ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}" data-filled="1">${state.mealEdit ? `<span class="meal-x" role="button" data-act="meal-x" data-id="${key}" aria-label="Supprimer ${esc(m.title)}">×</span>` : ''}<span class="slot">${label}</span><span class="meal-t">${esc(m.title)}</span>${m.cook?pill(m.cook):''}${hasRec?'<span class="rec-tag">Recette</span>':''}</button>`;
+  return `<button class="meal ${sel?'sel':''} ${past?'is-past':''}" data-act="meal-open" data-date="${date}" data-slot="${slot}" data-key="${key}" data-filled="1">${state.mealEdit ? `<span class="meal-x" role="button" data-act="meal-x" data-id="${key}" aria-label="Supprimer ${esc(m.title)}">×</span>` : ''}<span class="slot">${label}</span><span class="meal-t">${esc(m.title)}</span><span class="meal-f">${m.cook ? pill(m.cook) : ''}${(() => { const r = recipeOf(m); return r && r.price ? priceTag(r.price) : (!m.recipeId && hasRec ? '<span class="rec-tag">Plat libre</span>' : ''); })()}</span></button>`;
 }
 function mealEditor(){
   const { date, slot } = state.editMeal; const m = mealOf(date, slot) || {}; const k = mealKey(date, slot);
@@ -999,30 +1048,45 @@ function mealEditor(){
     </div>
   </form>`;
 }
+// On Sunday (one day left) the tab opens on next week
+const menuWeekDefault = () => weekDays(0).filter(d => d >= today()).length <= 1 ? 1 : 0;
+const shortRange = (a, b) => { const f = F({ day:'numeric', month:'short' }); if (a === b) return F({ weekday:'short', day:'numeric', month:'short' }).format(parse(a)); return parse(a).getMonth() === parse(b).getMonth() ? `${parse(a).getDate()} – ${f.format(parse(b))}` : `${f.format(parse(a))} – ${f.format(parse(b))}`; };
 function vMenus(){
   const t = today();
-  const weeks = [[0,'Cette semaine'],[1,'Semaine prochaine']].map(([off, lbl]) => {
-    const days = weekDays(off);
-    const planned = days.filter(d => off !== 0 || d >= t).reduce((n,d) => n + SLOTS.filter(([s]) => mealOf(d,s)).length, 0);
-    const range = F({day:'numeric',month:'short'}).format(parse(days[0])) + ' – ' + F({day:'numeric',month:'short'}).format(parse(days[6]));
-    const editHere = state.editMeal && days.includes(state.editMeal.date);
-    // this week: past days are hidden (their meals still count in the week's average and balance)
-    const shown = off === 0 ? days.filter(d => d >= t) : days;
-    return `<div class="week-h"><h2>${lbl} <span class="count" style="font-family:var(--font-body);font-weight:400">${esc(range)}</span></h2><div class="week-acts">${(() => { const a = weekAvg(days); return `<span class="count">${planned}/${(off === 0 ? days.filter(d => d >= t).length : 7) * 2} repas prévus${a ? ` · moyenne ${priceTag(Math.round(a))} <span class="tnum">(${numFmt(a)})</span>` : ''}</span>`; })()}
-        ${(() => { const ac = autoCount(days); return `${ac.open ? `<button class="btn sm" data-act="gen-week" data-off="${off}" title="Dîners du lundi au vendredi, midi et soir le week-end">${ac.filled ? 'Compléter au hasard' : 'Générer la semaine'}</button>` : ''}
-        ${ac.filled ? (state.confirmDel === 'gen-'+off ? `<button class="btn danger sm" data-act="gen-all" data-off="${off}">Remplacer les ${ac.filled} repas générables ?</button>` : `<button class="btn ghost sm" data-act="gen-askall" data-off="${off}" title="Les midis de la semaine ne sont pas touchés">Tout regénérer</button>`) : ''}`; })()}
-        ${planned ? (state.confirmDel === 'clear-'+off ? `<button class="btn danger sm" data-act="week-clear" data-off="${off}">Supprimer les ${planned} repas ?</button>` : `<button class="btn ghost sm" data-act="week-askclear" data-off="${off}">Vider la semaine</button>`) : ''}</div></div>
-      ${weekBalance(days)}
-      <div class="week" style="--cols:${shown.length}">${shown.map(d => { const dt = parse(d);
-        return `<div class="mday ${d===t?'today':''}"><div class="mday-h"><span>${esc(F({weekday:'short'}).format(dt))}</span><b>${dt.getDate()}</b></div>
-          ${SLOTS.map(([s,l]) => mealCell(d, s, l)).join('')}</div>`; }).join('')}</div>
-      ${editHere ? mealEditor() : ''}`;
-  }).join('');
+  const off = state.menuWeek ?? menuWeekDefault();
+  const days = weekDays(off);
+  const shown = off === 0 ? days.filter(d => d >= t) : days; // past days of this week are hidden
+  const planned = shown.reduce((n, d) => n + SLOTS.filter(([s]) => mealOf(d, s)).length, 0);
+  const avg = weekAvg(days), ac = autoCount(days);
+  const tabs = [0, 1].map(o => { const ds = weekDays(o); const from = o === 0 ? (ds.find(d => d >= t) || ds[0]) : ds[0];
+    return `<button class="wk-tab" role="tab" aria-selected="${o === off}" data-act="menu-week" data-v="${o}" data-week-tab="${o}"><b>${o ? 'Semaine prochaine' : 'Cette semaine'}</b><span>${esc(shortRange(from, ds[6]))}</span></button>`; }).join('');
+  let bar;
+  if (state.confirmDel === 'gen-' + off) bar = `<div class="wk-confirm"><span>Remplacer les ${ac.filled} repas générés ?</span><button class="btn danger sm" data-act="gen-all" data-off="${off}">Remplacer</button><button class="btn ghost sm" data-act="cancel">Annuler</button></div>`;
+  else if (state.confirmDel === 'clear-' + off) bar = `<div class="wk-confirm"><span>Supprimer les ${planned} repas de la semaine ?</span><button class="btn danger sm" data-act="week-clear" data-off="${off}">Supprimer</button><button class="btn ghost sm" data-act="cancel">Annuler</button></div>`;
+  else bar = `<div class="wk-bar">
+      <span class="count">${planned}/${shown.length * 2} repas${avg ? ` · ${priceTag(Math.round(avg))}` : ''}</span>
+      <div class="wk-actions">
+        ${ac.open ? `<button class="btn sm" data-act="gen-week" data-off="${off}">${ac.filled ? 'Compléter' : 'Générer la semaine'}</button>` : ''}
+        <details class="more"><summary class="btn ghost sm" aria-label="Plus d’actions">⋯</summary>
+          <div class="more-menu" role="menu">
+            ${planned ? '<button role="menuitem" data-act="meal-edit-on">Déplacer ou supprimer des plats</button>' : ''}
+            ${ac.filled ? `<button role="menuitem" data-act="gen-askall" data-off="${off}">Tout regénérer</button>` : ''}
+            <button role="menuitem" data-act="shop-resync">Resynchroniser les courses</button>
+            ${planned ? `<button role="menuitem" class="danger-item" data-act="week-askclear" data-off="${off}">Vider la semaine</button>` : ''}
+          </div></details>
+      </div></div>`;
+  const grid = `<div class="week" style="--cols:${shown.length}">${shown.map(d => { const dt = parse(d);
+      return `<div class="mday ${d === t ? 'today' : ''}"><div class="mday-h"><span>${esc(F({ weekday:'short' }).format(dt))}</span><b>${dt.getDate()}</b></div>
+        ${SLOTS.map(([s, l]) => mealCell(d, s, l)).join('')}</div>`; }).join('')}</div>`;
   return `
   <div class="head"><div><p class="eyebrow">Vie quotidienne</p><h1>Menus de la semaine</h1></div></div>
   ${menuTabs('menus')}
-  ${state.mealEdit ? `<div class="edit-bar" role="status"><span>Faites glisser un plat vers un autre jour, ou touchez <b>×</b> pour le supprimer.</span><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
-  <div class="weeks ${state.mealEdit ? 'edit-mode' : ''}">${weeks}</div>`;
+  <div class="wk-tabs" role="tablist">${tabs}</div>
+  ${bar}
+  ${weekBalance(days)}
+  ${state.mealEdit ? `<div class="edit-bar" role="status"><span>Faites glisser un plat vers un autre jour, ou touchez <b>×</b> pour le supprimer. Pour changer de semaine, amenez le plat sur l’onglet de la semaine.</span><button class="btn sm" data-act="meal-edit-done">Terminé</button></div>` : ''}
+  <div class="weeks ${state.mealEdit ? 'edit-mode' : ''}">${grid}</div>
+  ${state.editMeal ? `<div class="sheet-wrap"><div class="sheet-back" data-act="meal-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Repas">${mealEditor()}</div></div>` : ''}`;
 }
 
 /* ---------- recipe & ingredient banks ---------- */
@@ -1283,10 +1347,18 @@ function weekBalance(days){
   const kinds = [...new Set(prs.flatMap(p => p.kinds))];
   const bases = {}; prs.forEach(p => { if (p.base) bases[p.base] = (bases[p.base] || 0) + 1; });
   const noVeg = prs.filter(p => !p.veg).length, noProt = prs.filter(p => !p.hasProtein).length;
+  const top = Object.entries(bases).sort((a, b) => b[1] - a[1])[0];
+  const hot = rs.filter(r => tempOf(r) === 'chaud').length, cold = rs.length - hot;
+  const season = seasonOf(days[3]).replace(/^./, c => c.toUpperCase());
   const baseTxt = Object.entries(bases).sort((a, b) => b[1] - a[1]).map(([b, n]) => `${BASES[b].toLowerCase()}${n > 1 ? ' ×' + n : ''}`).join(', ');
-  return `<p class="week-sum"><span><b>Protéines</b> ${kinds.length ? esc(kinds.join(', ')) : '—'}</span><span><b>Bases</b> ${baseTxt || '—'}</span>
-    <span><b>${seasonOf(days[3]).replace(/^./, c => c.toUpperCase())}</b> ${rs.filter(r => tempOf(r) === 'chaud').length} chaud${rs.filter(r => tempOf(r) === 'chaud').length > 1 ? 's' : ''}, ${rs.filter(r => tempOf(r) === 'froid').length} froid${rs.filter(r => tempOf(r) === 'froid').length > 1 ? 's' : ''}</span>
-    <span class="${noVeg ? 'late' : ''}"><b>Légumes</b> ${noVeg ? `${noVeg} plat${noVeg > 1 ? 's' : ''} sans légume` : 'dans chaque plat'}</span>${noProt ? `<span class="late">${noProt} plat${noProt > 1 ? 's' : ''} sans protéine</span>` : ''}</p>`;
+  const chips = [
+    `<span class="nt">${kinds.length} protéine${kinds.length > 1 ? 's' : ''}</span>`,
+    `<span class="nt ${top && top[1] > 2 ? 'warn' : ''}">${top && top[1] > 2 ? BASES[top[0]] + ' ×' + top[1] : 'Bases variées'}</span>`,
+    `<span class="nt ${noVeg ? 'warn' : ''}">${noVeg ? noVeg + ' sans légume' : 'Légumes partout'}</span>`,
+    noProt ? `<span class="nt warn">${noProt} sans protéine</span>` : '',
+    `<span class="nt ${cold ? 'cold' : 'hot'}">${season} · ${hot} chaud${hot > 1 ? 's' : ''}${cold ? ', ' + cold + ' froid' + (cold > 1 ? 's' : '') : ''}</span>`].join('');
+  return `<details class="wk-sum"><summary aria-label="Équilibre de la semaine">${chips}</summary>
+    <p><b>Protéines</b> ${esc(kinds.join(', ') || '—')}<br><b>Bases</b> ${baseTxt || '—'}</p></details>`;
 }
 /* ---------- moving meals: long press, then drag and drop (iOS-style edit mode) ----------
    A long press on a meal enters edit mode: meals jiggle and show a delete badge.
@@ -1368,10 +1440,11 @@ document.addEventListener('pointercancel', e => { cancelPress(); if (drag) endDr
 // the click that ends a long press must not open the meal; a tap outside the meals leaves edit mode
 document.addEventListener('click', e => {
   if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); return; }
-  if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-bar')) { state.mealEdit = false; render(); }
+  if (state.mealEdit && !e.target.closest('.weeks .meal, .edit-bar, .wk-tabs, .more')) { state.mealEdit = false; render(); }
 }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.weeks .meal')) e.preventDefault(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.mealEdit) { if (drag) endDrag(e, false); state.mealEdit = false; render(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.editMeal && !state.mealEdit) { state.editMeal = null; state.mealQuery = ''; render(); return; }
+  if (e.key === 'Escape' && state.mealEdit) { if (drag) endDrag(e, false); state.mealEdit = false; render(); } });
 function startDrag(e, cell){
   const r = cell.getBoundingClientRect();
   const ghost = cell.cloneNode(true); ghost.classList.add('meal-ghost'); ghost.classList.remove('sel');
@@ -1385,6 +1458,11 @@ function moveDrag(e){
   drag.moved = true;
   drag.ghost.style.left = (e.clientX - drag.dx) + 'px'; drag.ghost.style.top = (e.clientY - drag.dy) + 'px';
   const under = document.elementFromPoint(e.clientX, e.clientY);
+  const tab = under && under.closest('[data-week-tab]');
+  const want = tab ? +tab.dataset.weekTab : null;
+  if (want !== null && want !== (state.menuWeek ?? menuWeekDefault())) {
+    if (!drag.tabTimer) drag.tabTimer = setTimeout(() => { if (drag) { drag.tabTimer = null; state.menuWeek = want; render(); } }, 450);
+  } else if (drag.tabTimer) { clearTimeout(drag.tabTimer); drag.tabTimer = null; }
   const target = under && under.closest('.weeks .meal');
   if (drag.over && drag.over !== target) drag.over.classList.remove('drop-target');
   drag.over = target && target !== drag.cell ? target : null;
@@ -1395,7 +1473,7 @@ function moveDrag(e){
   else if (e.clientY > bottom && e.clientY > drag.sy + 30) window.scrollBy(0, 14);
 }
 function endDrag(e, drop){
-  const d = drag; drag = null;
+  const d = drag; drag = null; if (d.tabTimer) clearTimeout(d.tabTimer);
   d.ghost.remove(); d.cell.classList.remove('dragging'); if (d.over) d.over.classList.remove('drop-target');
   if (drop && d.moved) swallowClick = true;
   if (drop && d.moved && d.over) moveMeal(d.key, d.over.dataset.date, d.over.dataset.slot);
@@ -1638,7 +1716,7 @@ function vMaison(){
     </section>`;
   };
   return `
-  <div class="head"><div><p class="eyebrow">Ma Maison</p><h1>${lights.length ? `${lights.length} lumière${lights.length > 1 ? 's' : ''} allumée${lights.length > 1 ? 's' : ''}` : 'Tout est éteint'}</h1>
+  <div class="head home"><div><p class="eyebrow">Ma Maison</p><h1>${lights.length ? `${lights.length} lumière${lights.length > 1 ? 's' : ''} allumée${lights.length > 1 ? 's' : ''}` : 'Tout est éteint'}</h1>
     <p class="sub">${clims.length ? clims.map(c => `${esc(c.name)} : ${modeLbl(c.mode)} à ${fmtT(c.target ?? 22)}`).join(' · ') : 'Climatisation à l’arrêt'}</p></div></div>
   ${state.maisonCfg.connected ? '' : `<p class="preview-note"><b>Mode aperçu.</b> Les commandes changent l’affichage pour vous deux, mais rien n’est encore envoyé aux lampes ni à la clim. <a href="#maison-config">Relier la maison à Home Assistant</a></p>`}
   <h2 style="margin-bottom:10px">Scènes</h2>
@@ -1724,6 +1802,7 @@ function render(structural){
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
   if (typeof resolveMeCat === 'function') resolveMeCat();
+  document.body.classList.toggle('sheet-open', !!(state.editMeal && route() === 'menus'));
   if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses'); }
 }
 
@@ -1901,10 +1980,12 @@ document.addEventListener('click', e => {
   else if (act === 'delproj') { state.confirmDel = null; delDoc('projects', id); }
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
   else if (act === 'meal-x') { deleteMealKey(id); }
+  else if (act === 'menu-week') { state.menuWeek = +el.dataset.v; state.confirmDel = null; state.editMeal = null; render(); }
+  else if (act === 'meal-edit-on') { state.mealEdit = true; state.editMeal = null; render(); }
   else if (act === 'meal-edit-done') { state.mealEdit = false; render(); }
   else if (act === 'meal-open' && state.mealEdit) { /* in edit mode a tap does not open the meal */ }
   else if (act === 'meal-open') { state.editMeal = { date:el.dataset.date, slot:el.dataset.slot }; state.mealQuery = ''; state.confirmDel = null; render(true);
-    const ed = document.getElementById('meal-editor'); if (ed) { ed.scrollIntoView({ block:'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); const i = ed.querySelector('.meal-q') || ed.querySelector('input[name=title]'); if (i && !i.value) i.focus({ preventScroll:true }); } }
+    const ed = document.getElementById('meal-editor'); if (ed) { const i = ed.querySelector('.meal-q') || ed.querySelector('input[name=title]'); if (i && !i.value && matchMedia('(min-width: 761px)').matches) i.focus({ preventScroll:true }); } }
   else if (act === 'meal-pick') { const f = el.closest('form'); const cook = (f.querySelector('select[name=cook]') || {}).value || '';
     state.mealQuery = ''; saveMeal(f.dataset.date, f.dataset.slot, { recipeId:id, cook }, true); }
   else if (act === 'meal-search') { state.editMeal = { ...state.editMeal, search:true }; state.mealQuery = ''; render(true);
