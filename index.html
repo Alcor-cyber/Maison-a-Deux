@@ -401,6 +401,7 @@ body[data-space="choix"] .main{padding-block:0}
 .cook-nav .btn{min-height:56px;font-size:1.05rem}
 .cook-nav .btn[disabled]{opacity:.4;cursor:default}
 .cook-btn{align-self:flex-start}
+.btn.amber{background:var(--pb);color:var(--surface)}
 .sc-help summary{color:var(--accent)}
 .sc-help ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
 @media (prefers-reduced-motion:reduce){.cook-timer.done{animation:none}}
@@ -1196,7 +1197,7 @@ function mealEditor(){
           <div class="picked"><b>${esc(rec.title)}</b>${priceTag(rec.price)}<button type="button" class="btn ghost sm" data-act="meal-search">Changer</button></div></div>`
         : `<div class="field grow"><label for="f-meal-q-${k}">Chercher une recette</label>
           <input id="f-meal-q-${k}" class="meal-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Tapez un nom, un ingrédient, « rapide »…" value="${esc(q)}"></div>`}
-      <div class="field"><label for="f-meal-cook-${k}">Qui cuisine</label><select id="f-meal-cook-${k}" name="cook">
+      <div class="field"><label for="f-meal-cook-${k}">Qui cuisine</label><select id="f-meal-cook-${k}" name="cook" data-act="meal-cook">
         <option value="" ${!m.cook?'selected':''}>Pas décidé</option><option value="both" ${m.cook==='both'?'selected':''}>Ensemble</option>
         <option value="a" ${m.cook==='a'?'selected':''}>${esc(state.config.a)}</option><option value="b" ${m.cook==='b'?'selected':''}>${esc(state.config.b)}</option></select></div>
     </div>
@@ -1206,15 +1207,14 @@ function mealEditor(){
           : `<p class="hint">Aucune recette ne contient « ${esc(q)} ».</p>`}
         ${rec ? '<button type="button" class="btn ghost sm" data-act="meal-search-cancel">Garder la recette actuelle</button>' : free ? '' : '<button type="button" class="btn ghost sm" data-act="meal-free">Plat libre, sans fiche recette</button>'}
       </div>` : ''}
-    ${rec ? `
+    ${rec && state.editMeal.showRecipe ? `
     <div class="cols">
       <div><p class="flabel">Ingrédients</p>${(rec.items||[]).length ? `<ul class="inglist">${rec.items.map(it => `<li><span>${esc(ingName(it))}</span><span class="amount">${esc(qtyStr(it.qty, it.unit))}</span></li>`).join('')}</ul>` : '<p class="hint">Aucun ingrédient dans cette recette.</p>'}</div>
       <div><p class="flabel">Préparation</p>${rec.steps ? `<p class="pre">${esc(rec.steps)}</p>` : '<p class="hint">Pas d’étapes notées.</p>'}
         ${rec.link && /^https?:\/\//i.test(rec.link) ? `<p style="margin-top:8px"><a href="${esc(rec.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a></p>` : ''}</div>
     </div>
     <p class="hint">${rid === (m.recipeId||'') && m.recipeId ? '✓ Les ingrédients de cette recette sont dans la liste de courses.' : 'Les ingrédients s’ajoutent automatiquement à la liste de courses.'}
-      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>
-    <button type="button" class="btn cook-btn" data-act="cook-open" data-id="${rec.id}">Cuisiner, étape par étape</button>` : !free ? '' : `
+      <a href="#recettes" data-act="rec-edit" data-id="${rec.id}">Modifier la recette</a></p>` : rec || !free ? '' : `
     <div class="field"><label for="f-meal-title-${k}">Plat</label><input id="f-meal-title-${k}" name="title" type="text" placeholder="Ex. Lasagnes aux légumes" value="${esc(m.recipeId ? '' : (m.title||''))}"></div>
     <div class="cols">
       <div class="field"><label for="f-meal-ing-${k}">Ingrédients (un par ligne)</label><textarea id="f-meal-ing-${k}" name="ingredients" placeholder="500 g de pâtes à lasagnes&#10;2 courgettes&#10;Mozzarella">${esc(m.ingredients||'')}</textarea></div>
@@ -1223,7 +1223,9 @@ function mealEditor(){
     <div class="field"><label for="f-meal-link-${k}">Lien vers la recette</label><input id="f-meal-link-${k}" name="link" type="text" inputmode="url" placeholder="Facultatif : https://…" value="${esc(m.link||'')}"></div>
     ${m.link && /^https?:\/\//i.test(m.link) ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a>` : ''}
     <p class="hint">Astuce : enregistrez vos plats habituels dans <a href="#recettes">la banque de recettes</a>, leurs ingrédients iront tout seuls dans les courses.</p>`}
-    <div class="acts">${rec || free ? '<button class="btn" type="submit">Enregistrer</button>' : ''}
+    <div class="acts">${rec && !state.editMeal.search ? `<button type="button" class="btn" data-act="meal-recipe" aria-expanded="${!!state.editMeal.showRecipe}">${state.editMeal.showRecipe ? 'Masquer la recette' : 'Afficher la recette'}</button>
+        <button type="button" class="btn amber" data-act="cook-open" data-id="${rec.id}">Cuisiner</button>` : ''}
+      ${!rec && free ? '<button class="btn" type="submit">Enregistrer</button>' : ''}
       ${!rec && (m.ingredients||'').trim() ? `<button type="button" class="btn ghost" data-act="meal-shop" data-id="${k}">Ajouter les ingrédients aux courses</button>` : ''}
       ${m.title ? (state.confirmDel==='meal-'+k ? `<button type="button" class="btn danger" data-act="meal-del" data-id="${k}">Confirmer la suppression</button>` : `<button type="button" class="btn ghost" data-act="askdel" data-id="meal-${k}">Supprimer le repas</button>`) : ''}
     </div>
@@ -2114,6 +2116,9 @@ document.addEventListener('change', e => {
   if (el.id === 'f-remember') { if (!el.checked) remember(''); return; }
   if (act === 'bri') { updDoc('devices', id, { bri:+el.value }); return; }
   if (act === 'ent') { updDoc('devices', id, { entity:el.value.trim() }); return; }
+  if (act === 'meal-cook') { const f = el.closest('form'); const key = mealKey(f.dataset.date, f.dataset.slot); const m = state.meals.find(x => x.id === key);
+    if (m && m.recipeId) { updDoc('meals', key, { cook:el.value }); toast(el.value ? `${el.value === 'both' ? 'Ensemble' : who(el.value)} cuisine` : 'Cuisinier retiré'); }
+    return; }
   if (act === 'cook-ing') { state.cook.done = { ...(state.cook.done || {}), [el.dataset.k]:el.checked }; return; }
   if (el.id === 'f-sc-on') { saveShortcutPref({ ...shortcutPref(), on:el.checked }); toast(el.checked ? 'Les boutons ⏱ lanceront le minuteur de l’iPhone' : 'Les boutons ⏱ utiliseront le minuteur de l’appli'); return; }
   if (el.id === 'f-sc-name') { saveShortcutPref({ ...shortcutPref(), name:el.value.trim() || 'Minuteur Foyer' }); render(); return; }
@@ -2183,6 +2188,7 @@ document.addEventListener('click', e => {
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
   else if (act === 'meal-x') { deleteMealKey(id); }
   else if (act === 'cook-open') { openCook(id); }
+  else if (act === 'meal-recipe') { state.editMeal = { ...state.editMeal, showRecipe:!state.editMeal.showRecipe }; render(); }
   else if (act === 'cook-close') { state.cook = null; render(); keepAwake(route() === 'en-courses'); }
   else if (act === 'cook-step') { state.cook.step = Math.max(0, state.cook.step + (+el.dataset.d)); render(); const c = document.querySelector('.cook'); if (c) c.scrollTop = 0; }
   else if (act === 'cook-ings') { state.cook.ings = !state.cook.ings; render(); }
@@ -2398,7 +2404,7 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795360392';
+const APP_BUILD = '1795360705';
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
