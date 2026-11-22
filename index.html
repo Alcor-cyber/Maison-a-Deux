@@ -272,6 +272,26 @@ a.chip{text-decoration:none}
   .mtop svg{width:20px;height:20px}
   .bar-row{grid-template-columns:86px minmax(0,1fr) auto}
 }
+/* ---------- opening animation ----------
+   The two partner circles come together, pulse once, the name rises, then the veil lifts. */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  animation:sp-out .45s ease-in 1.45s forwards;cursor:pointer}
+#splash[hidden]{display:none!important}
+.sp-mark{display:flex;position:relative}
+.sp-mark i{display:block;width:64px;height:64px;border-radius:50%}
+.sp-mark i:first-child{background:var(--sp-a,var(--pa));animation:sp-left .75s cubic-bezier(.2,1.4,.4,1) both}
+.sp-mark i:last-child{background:var(--sp-b,var(--pb));margin-left:-24px;mix-blend-mode:multiply;animation:sp-right .75s cubic-bezier(.2,1.4,.4,1) both}
+.sp-mark::after{content:"";position:absolute;inset:-14px;border-radius:999px;border:2px solid var(--sp-b,var(--pb));opacity:0;animation:sp-ring .7s ease-out .7s}
+.sp-name{font-family:var(--font-display);font-weight:700;font-size:1.9rem;letter-spacing:-.01em;color:var(--fg);opacity:0;animation:sp-name .55s ease-out .6s forwards}
+#splash.maison{--sp-a:var(--lamp);--sp-b:var(--cool)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sp-mark i:last-child{mix-blend-mode:screen} }
+:root[data-theme="dark"] .sp-mark i:last-child{mix-blend-mode:screen}
+@keyframes sp-left{from{transform:translateX(-90px) scale(.4);opacity:0}to{transform:none;opacity:1}}
+@keyframes sp-right{from{transform:translateX(90px) scale(.4);opacity:0}to{transform:none;opacity:1}}
+@keyframes sp-ring{0%{opacity:.55;transform:scale(.85)}100%{opacity:0;transform:scale(1.35)}}
+@keyframes sp-name{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sp-out{to{opacity:0;transform:scale(1.04);visibility:hidden}}
+@media (prefers-reduced-motion:reduce){#splash{display:none!important}}
 /* ---------- space chooser ---------- */
 .switch-space{font-size:.85rem;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:var(--r-sm);display:flex;gap:8px;align-items:center;margin-top:8px}
 .switch-space:hover{background:var(--surface-2);color:var(--fg)}
@@ -403,6 +423,7 @@ body[data-space="maison"] nav a[aria-current="page"] svg{color:var(--lamp)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
+<div id="splash" aria-hidden="true"><div class="sp-mark"><i></i><i></i></div><div class="sp-name">Foyer à deux</div></div>
 <div class="app">
   <aside class="side">
     <div class="brand"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">Foyer à deux</span></div>
@@ -1795,6 +1816,18 @@ function vLogin(){
   </div>`;
 }
 
+/* ---------- opening animation ---------- */
+(function splash(){
+  const el = document.getElementById('splash'); if (!el) return;
+  let first = false;
+  try { first = !sessionStorage.getItem('foyer-splash'); sessionStorage.setItem('foyer-splash', '1'); } catch {}
+  if (!first || matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return; }
+  if (spaceOf(route()) === 'maison') { el.classList.add('maison'); el.querySelector('.sp-name').textContent = 'Ma Maison'; }
+  const done = () => { if (el.isConnected) el.remove(); };
+  el.addEventListener('click', done);
+  el.addEventListener('animationend', e => { if (e.target === el) done(); });
+  setTimeout(done, 2400); // safety net if animations do not run
+})();
 /* ---------- start ---------- */
 render();
 (async () => {
