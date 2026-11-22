@@ -78,7 +78,8 @@ nav a[aria-current="page"] svg{color:var(--accent)}
 nav svg{width:20px;height:20px;flex:none}
 .side-foot{margin-top:auto;display:flex;align-items:flex-end;gap:10px}
 .side-foot .sync{margin-top:0}
-.me-cat{display:inline-flex;width:34px;height:34px;flex:none}
+.me-cat{display:inline-flex;width:46px;height:46px;flex:none}
+.home-cat{display:none}
 .me-cat svg{width:100%;height:100%}
 .sync{margin-top:auto;font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none;margin-top:6px}
@@ -317,7 +318,10 @@ a.chip{text-decoration:none}
   .app{grid-template-columns:minmax(0,1fr);gap:0}
   .side{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;z-index:20;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--line);gap:0}
   .side .brand,.side .sync,.side .switch-space,.side .side-foot{display:none}
-  .mtop .me-cat{width:30px;height:30px;margin-left:-4px}
+  .mtop .me-cat{display:none!important}
+  .head.home{flex-wrap:nowrap;align-items:center}
+  .home-cat{display:inline-flex;width:64px;height:64px}
+  .home-cat.purr::after{left:auto;right:calc(100% + 2px);top:14px}
   .mtop-r{gap:12px}
   .mtop .brand{white-space:nowrap;font-size:1.05rem}
   .mtop-r a[href="#choix"]{white-space:nowrap;font-size:.8rem}
@@ -453,6 +457,17 @@ body[data-space="choix"] .main{padding-block:0}
 .nap-art svg{width:100%;height:100%}
 .nap-head{animation:breathe 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
 @keyframes breathe{0%,100%{transform:rotate(-9deg) scale(1)}50%{transform:rotate(-9deg) scale(1.025,1.04)}}
+.nap-art{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.peek-open{opacity:0}
+.poke .peek-open{animation:peek-o 2.5s ease both}
+.poke .peek-shut{animation:peek-s 2.5s ease both}
+.poke .nap-head{animation:nap-lift 2.5s ease both}
+.poke .ear-r{animation:twitch-r 1.1s ease 1}
+.poke .zzz{opacity:0}
+.zzz{transition:opacity .3s}
+@keyframes peek-o{0%,6%{opacity:0}12%,72%{opacity:1}80%,100%{opacity:0}}
+@keyframes peek-s{0%,6%{opacity:1}12%,72%{opacity:0}80%,100%{opacity:1}}
+@keyframes nap-lift{0%,100%{transform:rotate(-9deg)}15%{transform:rotate(-2deg) translateY(-6px)}40%{transform:rotate(-4deg) translateY(-6px)}55%{transform:rotate(1deg) translateY(-5px)}75%{transform:rotate(-6deg) translateY(-2px)}}
 .zzz{position:absolute;right:-12px;top:-2px;width:30px;height:40px}
 .zzz i{position:absolute;left:0;bottom:0;font-style:normal;font-weight:700;font-family:var(--font-display);color:var(--muted);opacity:0;animation:zzz 3s ease-out infinite}
 .zzz i:nth-child(2){animation-delay:1s;font-size:1.15em}
@@ -942,7 +957,7 @@ function vAccueil(){
   const b = balanceText(balance());
   const proj = state.projects.filter(p => p.status === 'encours');
   return `
-  <div class="head home"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${greetName()}</h1></div></div>
+  <div class="head home"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${greetName()}</h1></div><span class="me-cat home-cat" id="me-cat-home" hidden></span></div>
   ${homeRings()}
   <div class="dash">
     <section class="card"><div class="card-h"><h2>Au menu aujourd'hui</h2><a href="#menus">Menus</a></div>
@@ -2303,7 +2318,7 @@ function render(structural){
     loading:['','Connexion…'], login:['','Connexion requise'], stale:['warn','Connexion lente'], error:['err','Synchronisation interrompue'] }[state.mode];
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
-  if (typeof resolveMeCat === 'function') resolveMeCat();
+  if (typeof resolveMeCat === 'function') { resolveMeCat(); paintMeCat(); }
   document.body.classList.toggle('sheet-open', !!((state.editMeal && route() === 'menus') || state.cook || state.nutri));
   if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses' || !!state.cook); }
 }
@@ -2510,6 +2525,7 @@ document.addEventListener('click', e => {
   else if (act === 'nutri-open') { state.nutri = { id, n:state.nutriN || 2 }; render(); }
   else if (act === 'theme') setTheme(el.dataset.v);
   else if (act === 'purr') catPurr(el);
+  else if (act === 'nap-poke') catPoke(el);
   else if (act === 'nutri-close') { state.nutri = null; render(); }
   else if (act === 'nutri-n') { state.nutri.n = state.nutriN = Math.min(12, Math.max(1, state.nutri.n + (+el.dataset.d))); render(); }
   else if (act === 'ing-nut') { state.ingNutEdit = state.ingNutEdit === id ? null : id; render(); const f = document.getElementById('f-nut-kcal'); if (f) f.focus(); }
@@ -2720,7 +2736,7 @@ function autoMe(){
 }
 function paintMeCat(){
   const label = meCat === 'roux' ? 'Connectée : Christelle' : meCat === 'gris' ? 'Connecté : Thomas' : '';
-  ['me-cat-side', 'me-cat-top'].forEach(id => { const el = document.getElementById(id); if (!el) return;
+  ['me-cat-side', 'me-cat-top', 'me-cat-home'].forEach(id => { const el = document.getElementById(id); if (!el) return;
     if (!meCat) { el.hidden = true; el.innerHTML = ''; return; }
     if (el.dataset.cat !== meCat) { el.innerHTML = catSvg(meCat, null, 'cat-live'); el.dataset.cat = meCat; el.dataset.act = 'purr'; }
     el.hidden = false; el.title = label; el.setAttribute('aria-label', label); el.setAttribute('role', 'img');
@@ -2739,7 +2755,8 @@ function catHead(kind, eyes){
   h = h.replace('<!-- oreilles -->', `<g class="ear ear-l">${(ear.l || []).join('')}</g><g class="ear ear-r">${(ear.r || []).join('')}</g>`);
   const a = h.indexOf('<!-- yeux -->'), b = h.indexOf('<!-- nez et bouche -->'), open = h.slice(a, b);
   const arc = up => `<g fill="none" stroke="${ec}" stroke-width="7" stroke-linecap="round">${up ? '<path d="M-58,8 C-50,-12 -34,-12 -26,8"/><path d="M26,8 C34,-12 50,-12 58,8"/>' : '<path d="M-58,0 C-50,14 -34,14 -26,0"/><path d="M26,0 C34,14 50,14 58,0"/>'}</g>`;
-  const e = eyes === 'sleep' ? arc(false) : eyes === 'happy' ? arc(true) : `<g class="eyes-open">${open}</g><g class="eyes-blink">${arc(false)}</g>`;
+  const nap = `<g fill="none" stroke="${ec}" stroke-width="7" stroke-linecap="round"><path d="M-58,0 C-50,14 -34,14 -26,0"/><g class="peek-shut"><path d="M26,0 C34,14 50,14 58,0"/></g></g><g class="peek-open"><ellipse cx="42" cy="4" rx="16" ry="13" fill="${ec}"/><ellipse cx="47" cy="0" rx="5.5" ry="5" fill="#fff"/><path d="M24,-8 C34,-14 50,-14 60,-8" stroke="${ec}" stroke-width="5" fill="none" stroke-linecap="round"/></g>`;
+  const e = eyes === 'sleep' ? nap : eyes === 'happy' ? arc(true) : `<g class="eyes-open">${open}</g><g class="eyes-blink">${arc(false)}</g>`;
   return h.slice(0, a) + e + h.slice(b);
 }
 const TOQUE = '<g class="toque"><path d="M-64,-96 C-64,-108 -56,-112 -48,-112 L48,-112 C56,-112 64,-108 64,-96 L64,-80 C30,-72 -30,-72 -64,-80 Z" fill="#fff" stroke="#D9DCE1" stroke-width="3"/><path d="M-56,-110 C-92,-114 -96,-160 -62,-166 C-60,-200 -14,-210 0,-184 C14,-210 60,-200 62,-166 C96,-160 92,-114 56,-110 Z" fill="#fff" stroke="#D9DCE1" stroke-width="3"/><path d="M-26,-118 C-24,-140 -18,-150 -12,-156 M22,-118 C22,-138 28,-148 34,-152" stroke="#E6E8EC" stroke-width="3" fill="none" stroke-linecap="round"/></g>';
@@ -2772,7 +2789,7 @@ function catSitSvg(kind){
 // asleep on its paws, for empty lists
 function catNap(text){
   const kind = myCat(), [, dark] = CAT_FUR[kind];
-  return `<div class="cat-nap"><div class="nap-art"><svg viewBox="-130 -150 260 300" aria-hidden="true"><g class="nap-head" transform="rotate(-9)">${catHead(kind, 'sleep')}</g>
+  return `<div class="cat-nap"><div class="nap-art" data-act="nap-poke" role="button" aria-label="Réveiller le chat"><svg viewBox="-130 -150 260 300" aria-hidden="true"><g class="nap-head" transform="rotate(-9)">${catHead(kind, 'sleep')}</g>
     <ellipse cx="-46" cy="112" rx="40" ry="20" fill="${dark}"/><ellipse cx="46" cy="112" rx="40" ry="20" fill="${dark}"/></svg>
     <span class="zzz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span></div><p class="empty">${text}</p></div>`;
 }
@@ -2791,14 +2808,16 @@ function catParty(){
   const conf = Array.from({ length:46 }, (_, i) => `<i style="--x:${(Math.random() * 100).toFixed(1)}vw;--dx:${(Math.random() * 80 - 40).toFixed(0)}px;--r:${(Math.random() * 720 - 360).toFixed(0)}deg;--d:${(Math.random() * .7).toFixed(2)}s;--t:${(1.6 + Math.random() * 1.2).toFixed(2)}s;background:${cols[i % cols.length]};${i % 3 ? '' : 'border-radius:50%;'}"></i>`).join('');
   catScene(`<div class="confetti">${conf}</div><div class="party"><p class="party-msg">Tout est fait !</p><div class="jumper j1">${catSitSvg('gris')}</div><div class="jumper j2">${catSitSvg('roux')}</div></div>`, 'scene-party', 3400);
 }
+// poking the napping cat: one eye opens, a look around, back to sleep
+function catPoke(el){ el.classList.remove('poke'); void el.offsetWidth; el.classList.add('poke'); clearTimeout(el._k); el._k = setTimeout(() => el.classList.remove('poke'), 2600); }
 // the corner cat purrs when touched
 function catPurr(el){ el.classList.remove('purr'); void el.offsetWidth; el.classList.add('purr'); clearTimeout(el._p); el._p = setTimeout(() => el.classList.remove('purr'), 1300); try { navigator.vibrate && navigator.vibrate([12, 30, 12, 30, 12]); } catch {} }
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795364224';
+const APP_BUILD = '1795364714';
 // What this version brings: shown by the « Nouvelle version » banner of the copies still open (keep one line)
-const APP_NOTES = ["Les chats s’animent : votre chat cligne des yeux et ronronne quand on le touche", "Courses : en appuyant sur « Terminer », votre chat traverse l’écran avec le sac", "Tâches : la dernière tâche du jour cochée, les deux chats sautent de joie sous les confettis", "Listes vides : un chat endormi", "Mode cuisine : le chat apparaît en toque de chef"];
+const APP_NOTES = ["Le chat du coin est plus grand ; sur iPhone il s’installe à côté de « Bonjour »", "Le chat qui dort ouvre un œil quand on le touche, puis se rendort", "Les chats s’animent : votre chat cligne des yeux et ronronne quand on le touche", "Courses : en appuyant sur « Terminer », votre chat traverse l’écran avec le sac", "Tâches : la dernière tâche du jour cochée, les deux chats sautent de joie sous les confettis", "Listes vides : un chat endormi", "Mode cuisine : le chat apparaît en toque de chef"];
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
