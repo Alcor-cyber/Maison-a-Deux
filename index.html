@@ -75,6 +75,10 @@ nav a:hover{background:var(--surface-2);color:var(--fg)}
 nav a[aria-current="page"]{background:var(--accent-soft);color:var(--fg)}
 nav a[aria-current="page"] svg{color:var(--accent)}
 nav svg{width:20px;height:20px;flex:none}
+.side-foot{margin-top:auto;display:flex;align-items:flex-end;gap:10px}
+.side-foot .sync{margin-top:0}
+.me-cat{display:inline-flex;width:34px;height:34px;flex:none}
+.me-cat svg{width:100%;height:100%}
 .sync{margin-top:auto;font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none;margin-top:6px}
 .dot.ok{background:var(--accent)} .dot.warn{background:var(--pb)} .dot.err{background:var(--danger)}
@@ -262,7 +266,9 @@ a.chip{text-decoration:none}
 @media (max-width:760px){
   .app{grid-template-columns:minmax(0,1fr);gap:0}
   .side{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;z-index:20;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--line);gap:0}
-  .side .brand,.side .sync,.side .switch-space{display:none}
+  .side .brand,.side .sync,.side .switch-space,.side .side-foot{display:none}
+  .mtop .me-cat{width:30px;height:30px;margin-left:-4px}
+  .mtop-r{gap:12px}
   nav{flex-direction:row;justify-content:space-around}
   nav a{flex-direction:column;gap:2px;padding:6px 4px;font-size:.68rem;flex:1;text-align:center;min-width:0}
   nav a.nav-settings{display:none}
@@ -278,14 +284,13 @@ a.chip{text-decoration:none}
   animation:sp-out .45s ease-in 1.45s forwards;cursor:pointer}
 #splash[hidden]{display:none!important}
 .sp-mark{display:flex;position:relative}
-.sp-mark i{display:block;width:64px;height:64px;border-radius:50%}
+.sp-mark i{display:grid;place-items:center;width:104px;height:104px;border-radius:50%;border:4px solid var(--bg);overflow:hidden;box-shadow:0 6px 18px rgb(0 0 0 / .12)}
+.sp-mark i svg{width:78%;height:auto;margin-top:12%}
 .sp-mark i:first-child{background:var(--sp-a,var(--pa));animation:sp-left .75s cubic-bezier(.2,1.4,.4,1) both}
-.sp-mark i:last-child{background:var(--sp-b,var(--pb));margin-left:-24px;mix-blend-mode:multiply;animation:sp-right .75s cubic-bezier(.2,1.4,.4,1) both}
-.sp-mark::after{content:"";position:absolute;inset:-14px;border-radius:999px;border:2px solid var(--sp-b,var(--pb));opacity:0;animation:sp-ring .7s ease-out .7s}
+.sp-mark i:last-child{background:var(--sp-b,var(--pb));margin-left:-22px;animation:sp-right .75s cubic-bezier(.2,1.4,.4,1) both}
+.sp-mark::after{content:"";position:absolute;inset:-12px;border-radius:999px;border:2px solid var(--sp-b,var(--pb));opacity:0;animation:sp-ring .7s ease-out .7s}
 .sp-name{font-family:var(--font-display);font-weight:700;font-size:1.9rem;letter-spacing:-.01em;color:var(--fg);opacity:0;animation:sp-name .55s ease-out .6s forwards}
 #splash.maison{--sp-a:var(--lamp);--sp-b:var(--cool)}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sp-mark i:last-child{mix-blend-mode:screen} }
-:root[data-theme="dark"] .sp-mark i:last-child{mix-blend-mode:screen}
 @keyframes sp-left{from{transform:translateX(-90px) scale(.4);opacity:0}to{transform:none;opacity:1}}
 @keyframes sp-right{from{transform:translateX(90px) scale(.4);opacity:0}to{transform:none;opacity:1}}
 @keyframes sp-ring{0%{opacity:.55;transform:scale(.85)}100%{opacity:0;transform:scale(1.35)}}
@@ -423,19 +428,19 @@ body[data-space="maison"] nav a[aria-current="page"] svg{color:var(--lamp)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div id="splash" aria-hidden="true"><div class="sp-mark"><i></i><i></i></div><div class="sp-name">Foyer à deux</div></div>
+<div id="splash" aria-hidden="true"><div class="sp-mark"><i><svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="spr-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#FFC77A"/> <stop offset=".55" stop-color="#F59B3C"/> <stop offset="1" stop-color="#D96F17"/> </radialGradient> <radialGradient id="spr-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#F59B3C"/><stop offset="1" stop-color="#D96F17"/> </radialGradient> <linearGradient id="spr-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="spr-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FBE3C8"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#spr-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#spr-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F6A3AE"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F6A3AE"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#spr-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#C25A10" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#C25A10" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#C25A10" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#spr-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFF4E6" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#spr-shine)" opacity=".8"/> </g></svg></i><i><svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="spg-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#D9DEE6"/> <stop offset=".55" stop-color="#A7AEB9"/> <stop offset="1" stop-color="#7A828E"/> </radialGradient> <radialGradient id="spg-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#A7AEB9"/><stop offset="1" stop-color="#7A828E"/> </radialGradient> <linearGradient id="spg-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="spg-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEFF3"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#spg-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#spg-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F3A6B4"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F3A6B4"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#spg-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#6B727D" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#6B727D" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#6B727D" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#spg-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#spg-shine)" opacity=".8"/> </g></svg></i></div><div class="sp-name">Foyer à deux</div></div>
 <div class="app">
   <aside class="side">
     <div class="brand"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">Foyer à deux</span></div>
     <nav id="nav" aria-label="Sections"></nav>
     <a class="switch-space" href="#choix"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h11l-3-3M16 13H5l3 3"/></svg><span id="switch-label">Aller à Ma Maison</span></a>
-    <div class="sync" id="sync"></div>
+    <div class="side-foot"><span class="me-cat" id="me-cat-side" hidden></span><div class="sync" id="sync"></div></div>
   </aside>
   <main class="main">
     <div class="mtop">
       <div class="brand"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">Foyer à deux</span></div>
       <div class="mtop-r"><a href="#choix">Changer d’espace</a>
-      <a href="#reglages" id="gear" aria-label="Réglages"><span id="sync-m" class="dot"></span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 6h14M3 14h14"/><circle cx="7" cy="6" r="2" fill="var(--bg)"/><circle cx="13" cy="14" r="2" fill="var(--bg)"/></svg></a></div>
+      <a href="#reglages" id="gear" aria-label="Réglages"><span id="sync-m" class="dot"></span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 6h14M3 14h14"/><circle cx="7" cy="6" r="2" fill="var(--bg)"/><circle cx="13" cy="14" r="2" fill="var(--bg)"/></svg></a><span class="me-cat" id="me-cat-top" hidden></span></div>
     </div>
     <div id="view"><p class="empty">Chargement…</p></div>
   </main>
@@ -1529,6 +1534,7 @@ function render(structural){
     loading:['','Connexion…'], login:['','Connexion requise'], stale:['warn','Connexion lente'], error:['err','Synchronisation interrompue'] }[state.mode];
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
+  if (typeof resolveMeCat === 'function') resolveMeCat();
   if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses'); }
 }
 
@@ -1816,6 +1822,32 @@ function vLogin(){
   </div>`;
 }
 
+/* ---------- who is signed in: a small cat in the corner ----------
+   Matched on a SHA-256 fingerprint of the account e-mail, so the published page
+   never contains the addresses themselves. */
+const CAT_SVG = { roux:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="mer-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#FFC77A"/> <stop offset=".55" stop-color="#F59B3C"/> <stop offset="1" stop-color="#D96F17"/> </radialGradient> <radialGradient id="mer-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#F59B3C"/><stop offset="1" stop-color="#D96F17"/> </radialGradient> <linearGradient id="mer-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="mer-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FBE3C8"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#mer-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#mer-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F6A3AE"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F6A3AE"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#mer-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#C25A10" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#C25A10" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#C25A10" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#C25A10" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#C25A10" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#mer-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#3B2A20"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFF4E6" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#mer-shine)" opacity=".8"/> </g></svg>', gris:'<svg viewBox="-122 -142 244 246" aria-hidden="true"><defs> <radialGradient id="meg-fur" cx="38%" cy="30%" r="80%"> <stop offset="0" stop-color="#D9DEE6"/> <stop offset=".55" stop-color="#A7AEB9"/> <stop offset="1" stop-color="#7A828E"/> </radialGradient> <radialGradient id="meg-ear" cx="50%" cy="20%" r="90%"> <stop offset="0" stop-color="#A7AEB9"/><stop offset="1" stop-color="#7A828E"/> </radialGradient> <linearGradient id="meg-shine" x1="0" y1="0" x2="0" y2="1"> <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/> </linearGradient> <radialGradient id="meg-muzzle" cx="50%" cy="35%" r="70%"> <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEFF3"/> </radialGradient> </defs> <g transform="translate(0 0) rotate(0) scale(1)"> <!-- oreilles --> <path d="M-92,-30 C-104,-90 -96,-128 -78,-138 C-60,-132 -28,-102 -14,-78 Z" fill="url(#meg-ear)"/> <path d="M92,-30 C104,-90 96,-128 78,-138 C60,-132 28,-102 14,-78 Z" fill="url(#meg-ear)"/> <path d="M-80,-48 C-86,-88 -82,-112 -74,-118 C-62,-112 -44,-92 -34,-76 Z" fill="#F3A6B4"/> <path d="M80,-48 C86,-88 82,-112 74,-118 C62,-112 44,-92 34,-76 Z" fill="#F3A6B4"/> <!-- tête --> <path d="M0,-92 C70,-92 118,-56 118,6 C118,64 70,100 0,100 C-70,100 -118,64 -118,6 C-118,-56 -70,-92 0,-92 Z" fill="url(#meg-fur)"/> <!-- rayures du front et des joues --> <path d="M0,-90 C-6,-72 -6,-58 0,-46 C6,-58 6,-72 0,-90 Z" fill="#6B727D" opacity=".85"/> <path d="M-26,-86 C-30,-70 -28,-60 -20,-50 C-16,-62 -18,-74 -26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M26,-86 C30,-70 28,-60 20,-50 C16,-62 18,-74 26,-86 Z" fill="#6B727D" opacity=".7"/> <path d="M-118,4 C-100,0 -88,4 -80,10 C-90,14 -104,14 -117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M-114,28 C-98,22 -86,26 -78,32 C-90,36 -102,36 -112,36 Z" fill="#6B727D" opacity=".6"/> <path d="M118,4 C100,0 88,4 80,10 C90,14 104,14 117,12 Z" fill="#6B727D" opacity=".7"/> <path d="M114,28 C98,22 86,26 78,32 C90,36 102,36 112,36 Z" fill="#6B727D" opacity=".6"/> <!-- museau clair --> <ellipse cx="0" cy="48" rx="54" ry="38" fill="url(#meg-muzzle)" opacity=".95"/> <!-- yeux --> <ellipse cx="-42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="42" cy="0" rx="17" ry="22" fill="#2C3440"/> <ellipse cx="-36" cy="-9" rx="6.5" ry="8" fill="#fff"/> <ellipse cx="48" cy="-9" rx="6.5" ry="8" fill="#fff"/> <circle cx="-46" cy="8" r="3" fill="#fff" opacity=".8"/> <circle cx="38" cy="8" r="3" fill="#fff" opacity=".8"/> <!-- nez et bouche --> <path d="M-12,30 C-12,24 12,24 12,30 C12,36 4,42 0,42 C-4,42 -12,36 -12,30 Z" fill="#F28B9B"/> <ellipse cx="-4" cy="29" rx="4" ry="2.2" fill="#fff" opacity=".6"/> <path d="M0,42 L0,50 M0,50 C-6,60 -18,60 -22,52 M0,50 C6,60 18,60 22,52" stroke="#5A3A2E" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/> <!-- moustaches --> <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity=".9"> <path d="M-56,40 L-104,32"/><path d="M-56,50 L-106,54"/> <path d="M56,40 L104,32"/><path d="M56,50 L106,54"/> </g> <!-- reflet brillant façon emoji --> <path d="M-70,-62 C-40,-84 30,-86 62,-60 C30,-70 -30,-70 -70,-50 Z" fill="url(#meg-shine)" opacity=".8"/> </g></svg>' };
+const CAT_OF = {
+  'badd25caff466aca43acf441328b4e9a3089a794d22f770c99bd47277735ed35':'roux', // Christelle
+  '01a4dccb4b6e1d21c70b1f45023c14dc3c4df0b3be778b959c899728eeaa2e19':'gris', // Thomas
+};
+let meCat = null, meCatFor = null;
+async function resolveMeCat(){
+  const email = (state.user || '').trim().toLowerCase();
+  if (email === meCatFor) return; meCatFor = email; meCat = null;
+  if (email && window.crypto && crypto.subtle) {
+    try { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+      meCat = CAT_OF[[...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('')] || null; } catch {}
+  }
+  paintMeCat();
+}
+function paintMeCat(){
+  const label = meCat === 'roux' ? 'Connectée : Christelle' : meCat === 'gris' ? 'Connecté : Thomas' : '';
+  ['me-cat-side', 'me-cat-top'].forEach(id => { const el = document.getElementById(id); if (!el) return;
+    if (!meCat) { el.hidden = true; el.innerHTML = ''; return; }
+    if (el.dataset.cat !== meCat) { el.innerHTML = CAT_SVG[meCat].replace(/id="me/g, 'id="' + id + '-me').replace(/url\(#me/g, 'url(#' + id + '-me'); el.dataset.cat = meCat; }
+    el.hidden = false; el.title = label; el.setAttribute('aria-label', label); el.setAttribute('role', 'img');
+  });
+}
 /* ---------- opening animation ---------- */
 (function splash(){
   const el = document.getElementById('splash'); if (!el) return;
