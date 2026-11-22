@@ -408,6 +408,38 @@ body[data-space="choix"] .main{padding-block:0}
 .cook-nav .btn[disabled]{opacity:.4;cursor:default}
 .cook-btn{align-self:flex-start}
 .btn.amber{background:var(--pb);color:var(--surface)}
+.btn.blue{background:var(--pa);color:var(--surface)}
+/* nutrition sheet */
+.nutri-wrap{z-index:50}
+.nutri-sheet{background:var(--surface);padding:18px 18px 22px}
+.nutri-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.nutri-h h2{font-size:1.2rem}
+.nutri-kpi{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.nutri-kpi b{font-family:var(--font-display);font-size:1.9rem;line-height:1;color:var(--pa);font-variant-numeric:tabular-nums}
+.nutri-kpi .big span{display:block;color:var(--muted);font-size:.85rem}
+.portions{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.portions b{font-size:1.1rem;color:var(--fg);min-width:1.2em;text-align:center}
+.portions button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.1rem;cursor:pointer}
+.mbar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface-2);margin:4px 0 6px}
+.mbar i{display:block}
+.mleg{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.mleg span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--c)}
+.ntab{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+.ntab th,.ntab td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+.ntab th:first-child,.ntab td:first-child{text-align:left;padding-left:0}
+.ntab th:last-child,.ntab td:last-child{padding-right:0}
+.ntab thead th{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.ntab td small{display:block;color:var(--muted);font-size:.78rem}
+.ntab td.na{color:var(--muted);font-style:italic;text-align:center}
+.ntab tfoot th{font-weight:600;border-bottom:0}
+.ntab tfoot tr:first-child th{border-top:2px solid var(--line)}
+.ntab tfoot tr.pp th{color:var(--pa);font-size:.95rem}
+.ing-nut{grid-column:1/-1;font-size:.8rem;color:var(--muted);margin-top:-4px}
+.ing-nut button{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.ing-nut button:hover,.ing-nut .todo{color:var(--pa)}
+.ing-nut form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:6px 0 4px}
+.ing-nut form label{display:flex;flex-direction:column;gap:2px;font-size:.75rem}
+.ing-nut form input{width:78px;min-height:34px;padding:4px 8px}
 .sc-help summary{color:var(--accent)}
 .sc-help ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
 @media (prefers-reduced-motion:reduce){.cook-timer.done{animation:none}}
@@ -952,6 +984,77 @@ function vCook(){
       ${i < n - 1 ? '<button class="btn" data-act="cook-step" data-d="1">Suivant ›</button>' : '<button class="btn" data-act="cook-close">Bon appétit !</button>'}</div>
   </div>`;
 }
+// Average values per 100 g of the ingredient as bought (raw, dry pasta and grains, drained tins):
+// [kcal, protéines g, glucides g, lipides g, grammes pour 1 unité habituelle quand elle n'est pas un poids]
+const NUTRI = {
+  'ail':[131,6.4,21,0.5,5], 'aubergine':[22,1,3,0.2,300], 'avocat':[160,2,1.8,15,150], 'baguette':[270,9,55,1.3,250],
+  'banane':[90,1.1,20,0.3,120], 'basilic':[23,3.2,1,0.6,30], 'beurre':[740,0.7,0.6,82], 'boeuf-braiser':[150,20,0,8],
+  'boeuf-hache':[210,18,0,15], 'bouillon':[250,10,20,15,10], 'bouquet-garni':[40,2,5,0.5,10], 'brocoli':[34,2.8,4,0.4,400],
+  'cabillaud':[80,18,0,0.7,150], 'cannelle':[250,4,27,1.2,2.5], 'carotte':[36,0.8,7,0.3,100], 'champignon':[24,3.1,1.5,0.3],
+  'cheddar':[403,25,1.3,33,20], 'chevre':[290,19,1,23], 'chocolat':[540,7,40,38], 'chorizo':[450,24,2,38],
+  'chou-fleur':[25,2,3,0.3,800], 'chou-vert':[27,1.5,4,0.2,900], 'citron':[29,0.8,3,0.3,80], 'concentre-tomate':[85,4.5,13,0.5,16],
+  'concombre':[14,0.6,2.3,0.1,300], 'coriandre':[23,2,1,0.5,30], 'courgette':[17,1.2,2,0.3,250], 'creme':[290,2.4,3,30],
+  'crevettes':[95,21,0,1], 'cuisse-poulet':[200,18,0,14,180], 'cumin':[375,18,34,22,2], 'curry':[325,13,25,14,2],
+  'dinde':[105,24,0,1,120], 'echalote':[72,2.5,14,0.1,30], 'endive':[17,1,2.5,0.1,130], 'epinard':[23,2.9,1.4,0.4],
+  'farine':[350,10,73,1.2], 'feta':[265,14,1,22], 'flocons-avoine':[370,13,58,7], 'fruits-rouges':[45,1,8,0.3],
+  'gingembre':[80,1.8,15,0.8], 'gnocchis':[160,3.5,33,0.5], 'gruyere':[410,28,0.4,33], 'haricots-blancs':[110,7,15,0.6,265],
+  'haricots-rouges':[105,7.5,14,0.5,250], 'haricots-verts':[30,1.8,4,0.2], 'huile-olive':[900,0,0,100,13], 'jambon':[115,20,1,3.5,40],
+  'lait-coco':[180,1.5,3,18,400], 'lait':[46,3.3,4.8,1.6], 'lardons':[240,16,0.5,19], 'lasagnes':[355,12,70,1.5],
+  'lentilles-corail':[340,24,50,1.5], 'lentilles-vertes':[330,24,48,1.5], 'levure-boulangere':[325,40,12,7.6,5.5], 'levure':[100,0,25,0,11],
+  'magret':[230,19,0,17,350], 'menthe':[44,3.8,5,0.7,30], 'merguez':[300,15,1.5,26,60], 'miel':[320,0.4,80,0,20],
+  'moules':[21,3,0.9,0.6], 'moutarde':[150,7,4,11,15], 'mozzarella':[250,18,1,19,125], 'muscade':[525,6,28,36,0.5],
+  'navet':[22,0.8,3.5,0.1,150], 'noix':[700,15,7,65], 'nouilles':[370,13,70,3], 'oeuf':[140,12.5,0.5,10,50],
+  'oignon-rouge':[40,1.1,8,0.1,120], 'oignon':[40,1.2,7.5,0.2,120], 'olives':[180,1.2,1.5,18], 'pain-burger':[280,9,48,5,70],
+  'pain-mie':[270,8.5,48,4,25], 'paprika':[290,14,19,13,2.5], 'parmesan':[390,33,0,28], 'patate-douce':[86,1.6,17,0.1],
+  'pate-brisee':[400,5.5,44,22,230], 'pate-feuilletee':[410,5.5,38,26,230], 'pate-pizza':[270,7.5,48,5,260], 'pates-completes':[350,13,62,2.5],
+  'pates':[355,12.5,71,1.5], 'persil':[40,3,4,0.8,30], 'pesto':[450,5,6,45], 'petits-pois':[75,5.5,10,0.5],
+  'pilons-poulet':[180,18.5,0,12,75], 'poireau':[30,1.5,4.5,0.3,200], 'pois-casses':[340,23,50,1.5], 'pois-chiches':[115,7,14,2.5,265],
+  'poivron':[28,0.9,5,0.3,160], 'pomme-de-terre':[80,2,16.5,0.1], 'pomme':[52,0.3,12,0.2,150], 'potiron':[26,1,5,0.1],
+  'poulet-entier':[180,19,0,12,850], 'poulet':[115,24,0,1.5], 'quinoa':[360,14,58,6], 'ras-el-hanout':[300,12,30,12,2],
+  'raviolis':[270,11,38,8], 'reblochon':[330,20,0.5,27,450], 'riz-arborio':[350,7,78,0.6], 'riz-complet':[355,7.5,74,2.7],
+  'riz':[355,7,79,0.6], 'salade':[15,1.3,1.5,0.2,250], 'sauce-soja':[55,8,5,0.5,15], 'saucisse':[280,15,1,24,110],
+  'saumon-fume':[180,22,0.5,10], 'saumon':[200,20,0,13,130], 'semoule':[360,12,72,1.5], 'steak-hache':[215,18,0,15,100],
+  'sucre-vanille':[400,0,100,0,7.5], 'sucre':[400,0,100,0], 'thon':[115,26,0,1,140], 'thym':[100,5,12,3,10],
+  'tofu':[145,15,1.5,9], 'tomate':[18,0.9,3,0.2,120], 'tomates-concassees':[25,1.2,4,0.2,400], 'tortillas':[310,8.5,50,7.5,60],
+  'veau':[150,19,0,8], 'vin-blanc':[70,0.1,1,0], 'vin-rouge':[75,0.1,0.3,0], 'yaourt':[62,3.8,4.7,3.2,125],
+  'filet-mignon':[125,21,0,4.5], 'miso':[200,12,25,6,18], 'panais':[75,1.2,13,0.3,200], 'vermicelles':[355,12.5,71,1.5],
+};
+const MASS_G = { g:1, kg:1000, ml:1, cl:10, L:1000 };
+const SPOON_G = { 'c. à soupe':15, 'c. à café':5, 'pincée':0.5 };
+// An ingredient's own values (entered in Ingrédients) win over the built-in table
+function nutriOf(id){ const i = ingById(id), n = i && i.nutri;
+  if (n && n.kcal != null) return [n.kcal, n.p || 0, n.g || 0, n.l || 0, n.gpu || (NUTRI[id] || [])[4]];
+  return NUTRI[id] || null; }
+function gramsOf(it, nu){ const q = parseFloat(String(it.qty ?? '').replace(',', '.')); if (!(q > 0)) return null;
+  if (MASS_G[it.unit]) return q * MASS_G[it.unit];
+  if (nu && nu[4]) return q * nu[4];
+  return SPOON_G[it.unit] ? q * SPOON_G[it.unit] : null; }
+function recipeNutri(r){
+  const rows = (r.items || []).map(it => { const id = it.ingId && ingById(it.ingId) ? it.ingId : ((ingByName(ingName(it)) || {}).id || it.ingId);
+    const nu = id ? nutriOf(id) : null, g = nu ? gramsOf(it, nu) : null;
+    return { it, g, nu, v: nu && g != null ? [0, 1, 2, 3].map(k => nu[k] * g / 100) : null }; });
+  return { rows, tot: [0, 1, 2, 3].map(k => rows.reduce((s, x) => s + (x.v ? x.v[k] : 0), 0)), missing: rows.filter(x => !x.v) };
+}
+function vNutri(){
+  const r = state.recipes.find(x => x.id === state.nutri.id); if (!r) return '';
+  const n = state.nutri.n, { rows, tot, missing } = recipeNutri(r);
+  const k0 = x => Math.round(x).toLocaleString('fr-FR'), g1 = x => x < 10 ? numFmt(Math.round(x * 10) / 10) : Math.round(x).toLocaleString('fr-FR');
+  const cells = v => `<td>${k0(v[0])}</td><td>${g1(v[1])}</td><td>${g1(v[2])}</td><td>${g1(v[3])}</td>`;
+  const en = [tot[1] * 4, tot[2] * 4, tot[3] * 9], es = en.reduce((a, b) => a + b, 0) || 1, pc = x => Math.round(x / es * 100);
+  const cols = ['var(--pa)', 'var(--pb)', 'var(--accent)'];
+  return `<div class="sheet-wrap nutri-wrap"><div class="sheet-back" data-act="nutri-close"></div><div class="sheet nutri-sheet" role="dialog" aria-modal="true" aria-label="Apports de ${esc(r.title)}">
+    <div class="nutri-h"><div><p class="eyebrow">Apports</p><h2>${esc(r.title)}</h2></div><button class="icon-btn" data-act="nutri-close" aria-label="Fermer">×</button></div>
+    <div class="nutri-kpi"><div class="big"><b>${k0(tot[0] / n)}</b><span>kcal par personne</span></div>
+      <div class="portions">Pour <button type="button" data-act="nutri-n" data-d="-1" aria-label="Une personne de moins">−</button><b>${n}</b><button type="button" data-act="nutri-n" data-d="1" aria-label="Une personne de plus">+</button> pers.</div></div>
+    <div class="mbar" role="img" aria-label="Protéines ${pc(en[0])} %, glucides ${pc(en[1])} %, lipides ${pc(en[2])} % des calories">${en.map((x, i) => `<i style="width:${x / es * 100}%;background:${cols[i]}"></i>`).join('')}</div>
+    <div class="mleg"><span style="--c:${cols[0]}">Protéines ${pc(en[0])} %</span><span style="--c:${cols[1]}">Glucides ${pc(en[1])} %</span><span style="--c:${cols[2]}">Lipides ${pc(en[2])} %</span></div>
+    <table class="ntab"><thead><tr><th>Ingrédient</th><th>kcal</th><th>Prot. g</th><th>Gluc. g</th><th>Lip. g</th></tr></thead>
+    <tbody>${rows.map(x => `<tr><td>${esc(ingName(x.it))}<small>${esc((x.it.unit === 'pièce' && parseFloat(x.it.qty) > 0 ? numFmt(parseFloat(x.it.qty)) + ' pièce' + (parseFloat(x.it.qty) > 1 ? 's' : '') : qtyStr(x.it.qty, x.it.unit)) || 'quantité non précisée')}${x.g != null && !['g', 'kg'].includes(x.it.unit) ? ' · ' + k0(x.g) + ' g' : ''}</small></td>${x.v ? cells(x.v) : `<td colspan="4" class="na">${x.nu ? 'quantité à préciser' : 'non renseigné'}</td>`}</tr>`).join('')}</tbody>
+    <tfoot><tr><th>Total de la recette</th>${cells(tot).replace(/td>/g, 'th>')}</tr><tr class="pp"><th>Par personne</th>${cells(tot.map(x => x / n)).replace(/td>/g, 'th>')}</tr></tfoot></table>
+    ${missing.length ? `<p class="hint" style="margin-top:10px">Non compté : ${esc(missing.map(x => ingName(x.it)).join(', '))}. Les apports se renseignent dans <a href="#ingredients" data-act="nutri-close">la banque d’ingrédients</a>.</p>` : ''}
+    <p class="hint" style="margin-top:10px">Valeurs moyennes des ingrédients crus (pâtes, riz et légumes secs pesés secs), à titre indicatif.</p>
+  </div></div>`;
+}
 function openCook(id){ state.cook = { id, step:0, ings:false, done:{} }; state.editMeal = null; render(); keepAwake(true); }
 function vTimerCard(){
   const sc = shortcutPref();
@@ -1231,7 +1334,8 @@ function mealEditor(){
     ${m.link && /^https?:\/\//i.test(m.link) ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Ouvrir la recette ↗</a>` : ''}
     <p class="hint">Astuce : enregistrez vos plats habituels dans <a href="#recettes">la banque de recettes</a>, leurs ingrédients iront tout seuls dans les courses.</p>`}
     <div class="acts">${rec && !state.editMeal.search ? `<button type="button" class="btn" data-act="meal-recipe" aria-expanded="${!!state.editMeal.showRecipe}">${state.editMeal.showRecipe ? 'Masquer la recette' : 'Afficher la recette'}</button>
-        <button type="button" class="btn amber" data-act="cook-open" data-id="${rec.id}">Cuisiner</button>` : ''}
+        <button type="button" class="btn amber" data-act="cook-open" data-id="${rec.id}">Cuisiner</button>
+        <button type="button" class="btn blue" data-act="nutri-open" data-id="${rec.id}">Apports</button>` : ''}
       ${!rec && free ? '<button class="btn" type="submit">Enregistrer</button>' : ''}
       ${!rec && (m.ingredients||'').trim() ? `<button type="button" class="btn ghost" data-act="meal-shop" data-id="${k}">Ajouter les ingrédients aux courses</button>` : ''}
       ${m.title ? (state.confirmDel==='meal-'+k ? `<button type="button" class="btn danger" data-act="meal-del" data-id="${k}">Confirmer la suppression</button>` : `<button type="button" class="btn ghost" data-act="askdel" data-id="meal-${k}">Supprimer le repas</button>`) : ''}
@@ -1637,6 +1741,7 @@ document.addEventListener('click', e => {
 }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.weeks .meal')) e.preventDefault(); });
 document.addEventListener('keydown', e => {
+  if (state.nutri && e.key === 'Escape') { state.nutri = null; render(); return; }
   if (state.cook) { if (e.key === 'ArrowRight') document.querySelector('[data-act=cook-step][data-d="1"]')?.click(); else if (e.key === 'ArrowLeft') document.querySelector('[data-act=cook-step][data-d="-1"]')?.click(); else if (e.key === 'Escape') { state.cook = null; render(); } return; }
   if (e.key === 'Escape' && state.editMeal && !state.mealEdit) { state.editMeal = null; state.mealQuery = ''; render(); return; }
   if (e.key === 'Escape' && state.mealEdit) { if (drag) endDrag(e, false); state.mealEdit = false; render(); } });
@@ -1734,11 +1839,23 @@ function vRecettes(){
       <div class="meta"><span>${(r.items||[]).length} ingrédient${(r.items||[]).length>1?'s':''}</span>${(r.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}${n?`<span class="rec-tag">Prévue ${n} fois</span>`:''}</div>
       ${(() => { const pr = profileOf(r); return `<div class="nutri"><span class="nt ${pr.hasProtein ? '' : 'warn'}">${esc(proteinLabel(pr))}</span>${pr.base ? `<span class="nt">${BASES[pr.base]}</span>` : ''}<span class="nt ${pr.veg ? '' : 'warn'}">${pr.veg ? pr.veg + ' légume' + (pr.veg > 1 ? 's' : '') : 'sans légume'}</span><span class="nt ${tempOf(r) === 'froid' ? 'cold' : 'hot'}">${tempOf(r) === 'froid' ? 'Plat froid' : 'Plat chaud'}</span></div>`; })()}
       <p class="desc">${esc((r.items||[]).map(ingName).join(', '))}</p>
-      <div class="acts"><button class="btn sm" data-act="cook-open" data-id="${r.id}">Cuisiner</button><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
+      <div class="acts"><button class="btn sm" data-act="cook-open" data-id="${r.id}">Cuisiner</button><button class="btn blue sm" data-act="nutri-open" data-id="${r.id}">Apports</button><button class="btn ghost sm" data-act="rec-edit" data-id="${r.id}">Modifier</button>
         ${state.confirmDel==='rec-'+r.id ? `<button class="btn danger sm" data-act="rec-del" data-id="${r.id}">Confirmer la suppression</button>` : `<button class="btn ghost sm" data-act="askdel" data-id="rec-${r.id}">Supprimer</button>`}</div>
     </article>`; }).join('')}</div>`
   : `<section class="card"><p class="empty">${q || pf ? 'Aucune recette ne correspond à ces critères.' : 'Aucune recette pour l’instant. Créez la première avec « Nouvelle recette ».'}</p>
       ${!q && !pf && !state.recipes.length && !db ? '<button class="btn" data-act="load-seed">Charger la banque de recettes de départ</button>' : ''}</section>`}`;
+}
+function ingNutLine(i){
+  const nu = nutriOf(i.id), mass = !!MASS_G[i.unit], v = x => x == null ? '' : String(x).replace('.', ',');
+  if (state.ingNutEdit === i.id) { const o = i.nutri || {}, d = NUTRI[i.id] || [];
+    const f = (k, l, j) => `<label>${l}<input id="f-nut-${k}" name="${k}" type="text" inputmode="decimal" value="${esc(v(o.kcal != null ? o[k] : d[j]))}"></label>`;
+    return `<div class="ing-nut"><form data-form="ingnut" autocomplete="off"><input type="hidden" name="id" value="${i.id}">
+      ${f('kcal', 'kcal', 0)}${f('p', 'Prot. g', 1)}${f('g', 'Gluc. g', 2)}${f('l', 'Lip. g', 3)}${mass ? '' : f('gpu', `1 ${esc(i.unit)} = g`, 4)}
+      <button class="btn sm" type="submit">Enregistrer</button><button class="btn ghost sm" type="button" data-act="ing-nut" data-id="${i.id}">Annuler</button>
+      ${i.nutri && NUTRI[i.id] ? `<button class="btn ghost sm" type="button" data-act="ing-nut-reset" data-id="${i.id}">Valeurs d’origine</button>` : ''}</form>
+      <span>Pour 100 g${mass ? '' : ', et le poids moyen d’une unité'}.</span></div>`; }
+  if (!nu) return `<div class="ing-nut"><button data-act="ing-nut" data-id="${i.id}" class="todo">Apports à renseigner ✎</button></div>`;
+  return `<div class="ing-nut"><button data-act="ing-nut" data-id="${i.id}" aria-label="Modifier les apports de ${esc(i.name)}">${numFmt(nu[0])} kcal · P ${numFmt(nu[1])} · G ${numFmt(nu[2])} · L ${numFmt(nu[3])} g pour 100 g${!mass && nu[4] ? ` · 1 ${esc(i.unit)} ≈ ${numFmt(nu[4])} g` : ''} ✎</button></div>`;
 }
 function vIngredients(){
   const q = (state.ingQuery||'').trim().toLowerCase();
@@ -1764,6 +1881,7 @@ function vIngredients(){
       <select data-act="ing-group" data-id="${i.id}" aria-label="Catégorie de ${esc(i.name)}">${FOOD_GROUPS.map(([k,l])=>`<option value="${k}" ${k===groupOf({ ingId:i.id, name:i.name })?'selected':''}>${l}</option>`).join('')}</select>
       <select data-act="ing-cat" data-id="${i.id}" aria-label="Rayon de ${esc(i.name)}">${SHOP_CATS.map(x=>`<option ${x===(i.cat||'Autre')?'selected':''}>${x}</option>`).join('')}</select>
       ${state.confirmDel==='ing-'+i.id ? `<button class="icon-btn" style="color:var(--danger)" data-act="ing-del" data-id="${i.id}" aria-label="Confirmer la suppression">✓</button>` : `<button class="icon-btn" data-act="${n?'askdel':'ing-del'}" data-id="${n?'ing-'+i.id:i.id}" aria-label="Supprimer ${esc(i.name)}">×</button>`}
+      ${ingNutLine(i)}
     </div>`; }).join('')}</section>`).join('')}</div>`
   : `<section class="card"><p class="empty">${q ? 'Aucun ingrédient ne correspond.' : 'La banque est vide. Ajoutez vos ingrédients courants avec le formulaire.'}</p></section>`}`;
 }
@@ -1989,7 +2107,8 @@ function render(structural){
   document.getElementById('nav').innerHTML = (sp === 'maison' ? MROUTES : ROUTES).map(([k,l,s]) =>`<a href="#${k}" class="${k==='reglages'?'nav-settings':''}" ${k===r||SUB[r]===k?'aria-current="page"':''}>${icon(k)}<span class="nav-long">${l}</span><span class="nav-short">${s||l}</span></a>`).join('');
   const notice = state.mode==='stale' ? '<p class="notice">La connexion au stockage partagé est lente : les données affichées ne sont peut-être pas à jour.</p>'
     : state.mode==='error' ? '<p class="notice">Le stockage partagé ne répond plus. Rechargez la page pour vous reconnecter.</p>' : '';
-  view.innerHTML = notice + VIEWS[r]() + (state.cook ? vCook() : '');
+  if (r !== lastRoute) state.nutri = null;
+  view.innerHTML = notice + VIEWS[r]() + (state.cook ? vCook() : '') + (state.nutri ? vNutri() : '');
   if (state.cook && state.cookTimer) paintCookTimer();
   for (const [id, v] of Object.entries(drafts)) { const el = document.getElementById(id); if (el && el.closest('form[data-form]')) el.value = v; }
   if (focus) { const el = document.getElementById(focus.id); if (el) { el.focus(); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} } }
@@ -1998,7 +2117,7 @@ function render(structural){
   document.getElementById('sync').innerHTML = `<span class="dot ${cls}"></span><span>${txt}</span>`;
   document.getElementById('sync-m').className = 'dot ' + cls;
   if (typeof resolveMeCat === 'function') resolveMeCat();
-  document.body.classList.toggle('sheet-open', !!((state.editMeal && route() === 'menus') || state.cook));
+  document.body.classList.toggle('sheet-open', !!((state.editMeal && route() === 'menus') || state.cook || state.nutri));
   if (r !== lastRoute) { lastRoute = r; window.scrollTo(0,0); if (r !== 'en-courses') { state.shopFinish = false; state.shopPay = { payer:null }; state.shopPaid = null; } keepAwake(r === 'en-courses' || !!state.cook); }
 }
 
@@ -2049,6 +2168,10 @@ const FORMS = {
   step(d, f){ const p = state.projects.find(x => x.id === f.dataset.id); if (!p) return; state.openProj.add(p.id);
     return updDoc('projects', p.id, { steps:[...(p.steps||[]), { id:uid(), text:d.text.trim(), done:false }] }); },
   meal(d, f){ saveMeal(f.dataset.date, f.dataset.slot, d, false); },
+  ingnut(d){ const n = x => { const v = parseFloat(String(x ?? '').replace(',', '.')); return v >= 0 ? v : null; };
+    if (n(d.kcal) == null) { toast('Indiquez au moins les calories'); return; }
+    const o = { kcal:n(d.kcal), p:n(d.p) || 0, g:n(d.g) || 0, l:n(d.l) || 0 }; if (n(d.gpu)) o.gpu = n(d.gpu);
+    updDoc('ingredients', d.id, { nutri:o }); state.ingNutEdit = null; render(); },
   ingredient(d){ const name = d.name.trim(); if (!name) return;
     if (ingByName(name)) { toast(`« ${name} » est déjà dans la banque.`); return; }
     return addDoc('ingredients', { name, cat:d.cat, unit:d.unit, ...(d.group ? { group:d.group } : {}) }); },
@@ -2087,7 +2210,7 @@ document.addEventListener('submit', e => {
   if (document.activeElement && document.activeElement.classList.contains('meal-q')) { const first = f.querySelector('[data-act=meal-pick]'); if (first) first.click(); return; }
   const d = Object.fromEntries(new FormData(f));
   const kind = f.dataset.form;
-  if (kind !== 'config' && kind !== 'meal' && kind !== 'recipe' && kind !== 'shoppay' && kind !== 'login') { f.reset(); const first = f.querySelector('input[type=text]'); if (first) first.focus(); }
+  if (kind !== 'config' && kind !== 'meal' && kind !== 'recipe' && kind !== 'shoppay' && kind !== 'login' && kind !== 'ingnut') { f.reset(); const first = f.querySelector('input[type=text]'); if (first) first.focus(); }
   FORMS[kind](d, f);
 });
 function draftSync(el){
@@ -2195,6 +2318,11 @@ document.addEventListener('click', e => {
   else if (act === 'delstep') { const p = state.projects.find(x => x.id === id); if (p) updDoc('projects', id, { steps:(p.steps||[]).filter(s => s.id !== el.dataset.step) }); }
   else if (act === 'meal-x') { deleteMealKey(id); }
   else if (act === 'cook-open') { openCook(id); }
+  else if (act === 'nutri-open') { state.nutri = { id, n:state.nutriN || 2 }; render(); }
+  else if (act === 'nutri-close') { state.nutri = null; render(); }
+  else if (act === 'nutri-n') { state.nutri.n = state.nutriN = Math.min(12, Math.max(1, state.nutri.n + (+el.dataset.d))); render(); }
+  else if (act === 'ing-nut') { state.ingNutEdit = state.ingNutEdit === id ? null : id; render(); const f = document.getElementById('f-nut-kcal'); if (f) f.focus(); }
+  else if (act === 'ing-nut-reset') { updDoc('ingredients', id, { nutri:null }); state.ingNutEdit = null; render(); }
   else if (act === 'meal-recipe') { state.editMeal = { ...state.editMeal, showRecipe:!state.editMeal.showRecipe }; render(); }
   else if (act === 'cook-close') { state.cook = null; render(); keepAwake(route() === 'en-courses'); }
   else if (act === 'cook-step') { state.cook.step = Math.max(0, state.cook.step + (+el.dataset.d)); render(); const c = document.querySelector('.cook'); if (c) c.scrollTop = 0; }
@@ -2411,9 +2539,9 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795361700';
+const APP_BUILD = '1795362375';
 // What this version brings: shown by the « Nouvelle version » banner of the copies still open (keep one line)
-const APP_NOTES = ["Le bandeau de mise à jour indique maintenant les nouveautés", "Menus : en mode édition, plus de bandeau explicatif, juste un bouton « Terminé »", "Réglages : guide du raccourci minuteur de l’iPhone corrigé (action « Démarrer le minuteur » seule)", "Menus : la fiche d’un plat affiche « Afficher la recette » (vert) et « Cuisiner » (ambre), et « Qui cuisine » s’enregistre tout seul"];
+const APP_NOTES = ["Recettes : nouveau bouton bleu « Apports » avec un tableau des calories, protéines, glucides et lipides selon les quantités, par personne", "Ingrédients : chaque ingrédient affiche ses apports pour 100 g, modifiables d’un toucher"];
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
