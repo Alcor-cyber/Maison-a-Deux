@@ -1008,6 +1008,29 @@ function vRecurring(){
    (« 25 min », « 1 h 15 ») become timer buttons: on an iPhone with the « Minuteur Foyer »
    shortcut they start the Clock app's timer (Shortcuts URL scheme), otherwise an in-app
    countdown rings at the end. */
+/* ---------- appearance: light, dark, by the clock, or like the device (kept on each phone) ---------- */
+const THEME_KEY = 'foyer-a-deux-theme', HOST_THEME = document.documentElement.dataset.theme;
+const themePref = () => { try { return localStorage.getItem(THEME_KEY) || 'system'; } catch { return 'system'; } };
+// sunrise and sunset in France, roughly, month by month (decimal hours, local time)
+const SUN = [[8.6,17.3],[8.1,18.1],[7.3,18.9],[7.3,20.6],[6.5,21.2],[6,21.8],[6.2,21.8],[6.8,21.1],[7.5,20.1],[8.2,19.1],[7.8,17.3],[8.4,17]];
+const sunOf = d => SUN[(d || new Date()).getMonth()];
+const darkByClock = (d = new Date()) => { const [rise, set] = sunOf(d), h = d.getHours() + d.getMinutes() / 60; return h < rise || h >= set; };
+const fmtH = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
+function applyTheme(){
+  const p = themePref(), el = document.documentElement;
+  const t = p === 'light' ? 'light' : p === 'dark' ? 'dark' : p === 'clock' ? (darkByClock() ? 'dark' : 'light') : HOST_THEME;
+  if (t) el.dataset.theme = t; else delete el.dataset.theme;
+}
+function setTheme(p){ try { localStorage.setItem(THEME_KEY, p); } catch {} applyTheme(); render(); }
+applyTheme(); setInterval(applyTheme, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) applyTheme(); });
+function vThemeCard(){
+  const p = themePref(), [rise, set] = sunOf();
+  const c = (k, l) => `<button class="chip" data-act="theme" data-v="${k}" aria-pressed="${p === k}">${l}</button>`;
+  return `<section class="card"><h2>Apparence</h2>
+    <div class="chips" style="margin:10px 0 0">${c('clock', 'Automatique selon l’heure')}${c('light', 'Clair')}${c('dark', 'Sombre')}${c('system', 'Comme l’appareil')}</div>
+    <p class="hint" style="margin-top:8px">${p === 'clock' ? `Sombre après le coucher du soleil : en ce moment de ${fmtH(set)} à ${fmtH(rise)}. Les horaires suivent les saisons.`
+      : p === 'system' ? 'Suit le réglage clair ou sombre de l’iPhone ou de l’ordinateur.' : 'Ce choix vaut pour cet appareil seulement.'}</p></section>`;
+}
 const SHORTCUT_KEY = 'foyer-a-deux-shortcut';
 const shortcutPref = () => { try { return JSON.parse(localStorage.getItem(SHORTCUT_KEY) || 'null') || { on:false, name:'Minuteur Foyer' }; } catch { return { on:false, name:'Minuteur Foyer' }; } };
 const saveShortcutPref = v => { try { localStorage.setItem(SHORTCUT_KEY, JSON.stringify(v)); } catch {} };
@@ -1351,6 +1374,7 @@ function vReglages(){
       </div>
       <div><button class="btn" type="submit">Enregistrer</button></div>
     </form>
+    ${vThemeCard()}
     ${usingFirebase && state.user ? vNotifCard() : ''}
     ${vTimerCard()}
     <section class="card"><h2>Synchronisation</h2><p class="sub" style="margin-top:6px">${modeTxt}</p>
@@ -2419,6 +2443,7 @@ document.addEventListener('click', e => {
   else if (act === 'meal-x') { deleteMealKey(id); }
   else if (act === 'cook-open') { openCook(id); }
   else if (act === 'nutri-open') { state.nutri = { id, n:state.nutriN || 2 }; render(); }
+  else if (act === 'theme') setTheme(el.dataset.v);
   else if (act === 'nutri-close') { state.nutri = null; render(); }
   else if (act === 'nutri-n') { state.nutri.n = state.nutriN = Math.min(12, Math.max(1, state.nutri.n + (+el.dataset.d))); render(); }
   else if (act === 'ing-nut') { state.ingNutEdit = state.ingNutEdit === id ? null : id; render(); const f = document.getElementById('f-nut-kcal'); if (f) f.focus(); }
@@ -2639,9 +2664,9 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795363400';
+const APP_BUILD = '1795363879';
 // What this version brings: shown by the « Nouvelle version » banner of the copies still open (keep one line)
-const APP_NOTES = ["Menus : un liseré de couleur sur chaque repas selon la protéine (poisson, volaille, porc, viande rouge, végétarien), avec le décompte de la semaine", "Accueil : anneaux de suivi (tâches, repas prévus, budget, projets), repas du jour avec calories et boutons Cuisiner / Apports, rendez-vous en frise", "Accueil : la liste de courses n’y apparaît plus", "Animations : cases à cocher animées, transitions entre onglets, retour visuel au toucher"];
+const APP_NOTES = ["Réglages : choix de l’apparence, clair, sombre, automatique selon l’heure (sombre après le coucher du soleil) ou comme l’appareil"];
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
