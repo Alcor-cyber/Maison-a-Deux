@@ -955,11 +955,12 @@ function vTimerCard(){
     <label class="toggle" style="color:var(--fg)"><input type="checkbox" class="chk" id="f-sc-on" ${sc.on ? 'checked' : ''}> Utiliser le minuteur de l’iPhone sur cet appareil</label>
     <div class="field" style="max-width:320px"><label for="f-sc-name">Nom du raccourci</label><input id="f-sc-name" type="text" value="${esc(sc.name || 'Minuteur Foyer')}"></div>
     <details class="sc-help"><summary>Créer le raccourci (1 minute)</summary>
-      <ol><li>Ouvrez l’appli <b>Raccourcis</b> de l’iPhone, onglet <b>Raccourcis</b>, puis <b>+</b> en haut à droite.</li>
+      <ol><li>Ouvrez l’appli <b>Raccourcis</b>, onglet <b>Raccourcis</b>, puis <b>+</b> en haut à droite.</li>
         <li>Touchez le nom en haut et appelez-le <b>${esc(sc.name || 'Minuteur Foyer')}</b>.</li>
-        <li><b>Ajouter une action</b> : cherchez « <b>Obtenir les nombres de l’entrée</b> » et ajoutez-la.</li>
-        <li>Ajoutez l’action « <b>Démarrer le minuteur</b> » (Horloge). Touchez la durée, choisissez la variable <b>Nombres</b>, et l’unité <b>minutes</b>.</li>
-        <li>Touchez <b>OK</b>. C’est tout : revenez ici et touchez « Tester ».</li></ol>
+        <li>Touchez <b>Ajouter une action</b>, tapez « <b>minuteur</b> » dans la recherche et choisissez <b>Démarrer le minuteur</b> (appli Horloge).</li>
+        <li>Dans l’action, touchez la durée en bleu (« 30 minutes »), effacez le nombre, puis dans la barre au-dessus du clavier choisissez la variable <b>Entrée du raccourci</b>. Laissez l’unité sur <b>minutes</b>.</li>
+        <li>Si <b>Entrée du raccourci</b> n’est pas proposée : touchez le nom du raccourci en haut, puis <b>Détails</b> (ou ⓘ), activez <b>Afficher dans la feuille de partage</b>, revenez, et recommencez l’étape 4.</li>
+        <li>Touchez <b>OK</b>, revenez ici et touchez « Tester avec 1 minute ».</li></ol>
       <p class="hint">La première fois, iOS demande d’autoriser l’ouverture du raccourci : touchez <b>Ouvrir</b> (ou <b>Toujours autoriser</b>).</p></details>
     <div><button class="btn ghost sm" data-act="sc-test">Tester avec 1 minute</button></div>
   </section>`;
@@ -2404,7 +2405,7 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795360705';
+const APP_BUILD = '1795361151';
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
