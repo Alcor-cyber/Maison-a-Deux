@@ -537,7 +537,11 @@ body[data-space="maison"] nav a[aria-current="page"] svg{color:var(--lamp)}
 <script>
 (() => {
 const COLS = ['tasks','shopping','expenses','events','projects','meals','recipes','ingredients','rooms','devices','recurring'];
-const DEFAULT_CFG = { a:'Partenaire A', b:'Partenaire B' };
+const DEFAULT_CFG = { a:'Thomas', b:'Christelle' };
+// names saved before they were set read as the old placeholders: show the real names instead
+const withNames = c => ({ ...DEFAULT_CFG, ...c, ...(c && c.a === 'Partenaire A' ? { a:DEFAULT_CFG.a } : {}), ...(c && c.b === 'Partenaire B' ? { b:DEFAULT_CFG.b } : {}) });
+// « Bonjour Thomas » once this account says who it is, else both names
+const greetName = () => (state.prefs && (state.prefs.me === 'a' || state.prefs.me === 'b')) ? esc(who(state.prefs.me)) : `${esc(state.config.a)} et ${esc(state.config.b)}`;
 const state = { tasks:[], shopping:[], expenses:[], events:[], projects:[], meals:[], recipes:[], ingredients:[], rooms:[], devices:[], recurring:[], maisonCfg:{ steps:{} }, config:{...DEFAULT_CFG}, editMeal:null,
   recipeDraft:null, recipeQuery:'', ingQuery:'', shopFinish:false, shopPay:{ payer:null }, shopPaid:null, user:null, loginError:'', loginBusy:false, prefs:{ me:null, mute:{} }, pushBusy:false,
   mode:'loading', taskWho:'all', showDone:false, month:null, openProj:new Set(), confirmDel:null };
@@ -620,7 +624,7 @@ const icon = k => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" st
 /* ---------- storage ---------- */
 const LS_KEY = 'foyer-a-deux-v1';
 function loadLocal(){
-  try { const d = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (d) { COLS.forEach(c => state[c] = d[c] || []); state.config = {...DEFAULT_CFG, ...(d.config||{})}; state.maisonCfg = { steps:{}, ...(d.maisonCfg||{}) }; } } catch {}
+  try { const d = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (d) { COLS.forEach(c => state[c] = d[c] || []); state.config = withNames(d.config || {}); state.maisonCfg = { steps:{}, ...(d.maisonCfg||{}) }; } } catch {}
 }
 function saveLocal(){
   try { const d = {config:state.config, maisonCfg:state.maisonCfg}; COLS.forEach(c => d[c] = state[c]); localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch {}
@@ -715,7 +719,7 @@ function vAccueil(){
   const monthTotal = state.expenses.filter(e => (e.date||'').startsWith(curMonth()) && e.cat !== 'Remboursement').reduce((s,e)=>s+(+e.amount||0),0);
   const proj = state.projects.filter(p => p.status === 'encours');
   return `
-  <div class="head home"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${esc(state.config.a)} et ${esc(state.config.b)}</h1></div></div>
+  <div class="head home"><div><p class="eyebrow">${esc(fmtLong(t))}</p><h1>Bonjour ${greetName()}</h1></div></div>
   <div class="dash">
     <section class="card"><div class="card-h"><h2>À faire aujourd'hui</h2><a href="#taches">Toutes les tâches</a></div>
       ${due.length ? `<ul class="list">${due.map(taskRow).join('')}</ul>` : `<p class="empty">Rien d'urgent aujourd'hui.${soon.length?'':' Ajoutez une tâche dans l’onglet Tâches.'}</p>`}
@@ -1718,7 +1722,7 @@ function vChoix(){
   const plural = (n, a, b) => `${n} ${n > 1 ? b : a}`;
   return `<div class="chooser">
     <div class="chooser-head"><span class="brand-mark big"><i></i><i></i></span><p class="eyebrow">${esc(fmtLong(t))}</p>
-      <h1>${hello} ${esc(state.config.a)} et ${esc(state.config.b)}</h1><p class="sub">Où voulez-vous aller ?</p></div>
+      <h1>${hello} ${greetName()}</h1><p class="sub">Où voulez-vous aller ?</p></div>
     <div class="choices">
       <a class="choice c-foyer" href="#accueil" data-act="pick-space" data-space="foyer">
         <span class="choice-art">${icon('accueil')}</span><span class="choice-t">Foyer à deux</span>
@@ -2242,7 +2246,12 @@ async function resolveMeCat(){
     try { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
       meCat = CAT_OF[[...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('')] || null; } catch {}
   }
-  paintMeCat();
+  paintMeCat(); autoMe();
+}
+// first sign-in: the recognised account picks « vous êtes » itself (Thomas = a, Christelle = b); it can still be changed
+function autoMe(){
+  if (!usingFirebase || !state.prefsLoaded || !meCat || state.prefs.me || autoMe.done) return;
+  autoMe.done = true; setPrefs({ ...state.prefs, me:meCat === 'gris' ? 'a' : 'b' });
 }
 function paintMeCat(){
   const label = meCat === 'roux' ? 'Connectée : Christelle' : meCat === 'gris' ? 'Connecté : Thomas' : '';
@@ -2255,7 +2264,7 @@ function paintMeCat(){
 /* ---------- new version banner ----------
    The GitHub build stamps APP_BUILD; the page checks now and then whether the published
    index.html carries another stamp, and offers to reload instead of showing a stale copy. */
-const APP_BUILD = '1795359685';
+const APP_BUILD = '1795359823';
 let newBuild = null;
 async function checkForUpdate(){
   if (APP_BUILD.startsWith('__') || newBuild || !/^https?:/.test(location.protocol)) return;
@@ -2307,10 +2316,10 @@ function connect(d){
   const settle = (k, snap) => { if (!snap.metadata.fromCache && pending.delete(k) && !pending.size) { clearTimeout(timer); if (state.mode !== 'error') state.mode = 'shared'; applySeedUpdates(); applyRecurring(); } };
   const onErr = k => () => { pending.delete(k); clearTimeout(timer); state.mode = 'error'; scheduleRender(); };
   COLS.forEach(c => listen(db.collection(c), s => { state[c] = s.docs.map(x => ({ ...x.data(), id:x.id })); settle(c, s); scheduleRender(); }, onErr(c)));
-  listen(db.doc('config/couple'), s => { if (s.exists) state.config = { ...DEFAULT_CFG, ...s.data() }; settle('config', s); scheduleRender(); }, onErr('config'));
+  listen(db.doc('config/couple'), s => { if (s.exists) state.config = withNames(s.data()); settle('config', s); scheduleRender(); }, onErr('config'));
   listen(db.doc('config/maison'), s => { if (s.exists) state.maisonCfg = { steps:{}, ...s.data() }; settle('maison', s); scheduleRender(); }, onErr('maison'));
   if (usingFirebase && state.user) {
-    db.doc('prefs/' + state.user).onSnapshot(s => { state.prefs = { me:null, mute:{}, ...(s.exists ? s.data() : {}) }; scheduleRender(); }, () => {});
+    db.doc('prefs/' + state.user).onSnapshot(s => { state.prefs = { me:null, mute:{}, ...(s.exists ? s.data() : {}) }; state.prefsLoaded = true; autoMe(); scheduleRender(); }, () => {});
     resumePush();
   }
 }
